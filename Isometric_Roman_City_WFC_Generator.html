@@ -1,0 +1,3951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="tool">
+  <meta name="design-style" content="terracotta">
+  <title>Forma Urbis — Isometric Roman City WFC Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Page and surfaces (Terracotta style) */
+      --background: #f9f3eb;
+      --surface-container-low: #f3e9dc;
+      --surface-container: #ede0d0;
+      --surface-container-high: #e4d4c0;
+      --surface-elevated: #fcf8f2;
+
+      /* Ink */
+      --on-surface: #261b15;
+      --on-surface-variant: #57483f;
+
+      /* Borders */
+      --outline: #9e8a78;
+      --outline-variant: #dfd0be;
+      --outline-featured: #c98a6b;
+      --outline-emerald: #b5d6c9;
+      --outline-button: #c4b29e;
+
+      /* Accents */
+      --primary: #b84a24;
+      --primary-hover: #9d3c1b;
+      --on-primary: #ffffff;
+      --primary-container: #f7ebe0;
+      --on-primary-container: #7d2e12;
+      --secondary: #8f6524;
+      --secondary-container: #f3e6cf;
+      --tertiary: #1d6356;
+      --tertiary-container: #e1efe9;
+      --on-tertiary-container: #13473d;
+      --error: #b82929;
+      --error-container: #f9e2e2;
+      --on-error: #ffffff;
+
+      /* Semantic */
+      --positive: #1d6356;
+      --warning: #b5893e;
+      --focus: #b84a24;
+
+      /* Data & Entropy series */
+      --data-1: #b84a24;
+      --data-2: #1d6356;
+      --data-3: #b5893e;
+      --data-4: #8c3838;
+      --data-context: #a39384;
+
+      /* Fonts */
+      --font-headline: 'Cormorant Garamond', serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'IBM Plex Mono', monospace;
+      --font-sans-label: 'Plus Jakarta Sans', sans-serif;
+
+      /* Shape */
+      --rounded: 0.375rem;
+      --rounded-lg: 0.75rem;
+      --rounded-arch: 28px 28px 6px 6px;
+      --rounded-full: 9999px;
+
+      /* Style effects */
+      --soft-shadow: 0 4px 18px rgb(38 27 21 / 0.04);
+      --soft-shadow-raised: 0 8px 28px rgb(38 27 21 / 0.08);
+      --warm-hairline: 1px solid var(--outline-variant);
+      --brass-gradient: linear-gradient(90deg, var(--outline-variant), var(--data-3), var(--outline-variant));
+      --hud-backdrop: rgb(249 243 235 / 0.9);
+      --hud-dark-backdrop: rgb(38 27 21 / 0.86);
+
+      /* Type scale (Focused Tool) */
+      --display-size: clamp(2rem, 1.35rem + 2.2vw, 3rem);
+      --headline-size: clamp(1.35rem, 1.15rem + 0.7vw, 1.75rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    button, input, select {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 2.5px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Hero Header */
+    .hero-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      padding-top: var(--space-sm);
+    }
+    .hero-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+    .kicker {
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .badge-emerald {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--tertiary-container);
+      color: var(--on-tertiary-container);
+      border: 1px solid var(--outline-emerald);
+      padding: var(--space-xs) 0.75rem;
+      border-radius: var(--rounded-full);
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--display-size);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      color: var(--on-surface);
+      margin: 0;
+    }
+    .title em {
+      font-style: italic;
+      color: var(--primary);
+    }
+    .subtitle {
+      margin: 0;
+      max-width: 72ch;
+      color: var(--on-surface-variant);
+      font-size: var(--body-size);
+    }
+    .ornament-rule {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-top: var(--space-xs);
+      color: var(--secondary);
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .ornament-rule::before,
+    .ornament-rule::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--brass-gradient);
+    }
+
+    /* Arch Metric Strip */
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+    .arch-card {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-arch);
+      padding: var(--space-md) var(--space-md) 0.875rem;
+      text-align: center;
+      box-shadow: var(--soft-shadow);
+      transition: transform var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out);
+    }
+    .arch-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--soft-shadow-raised);
+    }
+    .arch-card.is-featured {
+      background: var(--primary-container);
+      border-color: var(--outline-featured);
+    }
+    .arch-label {
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .arch-value {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: clamp(1.75rem, 1.45rem + 1vw, 2.35rem);
+      line-height: 1.1;
+      color: var(--on-surface);
+      margin-block: var(--space-xs);
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    .arch-caption {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--tertiary);
+      font-weight: 500;
+    }
+    .arch-card.is-featured .arch-caption {
+      color: var(--on-primary-container);
+    }
+
+    /* Main Workspace Grid */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    /* Stage Panel (Left) */
+    .stage-column {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    /* Toolbar */
+    .toolbar-panel {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      box-shadow: var(--soft-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: var(--space-sm) var(--space-md);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .control-label {
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .segmented {
+      display: inline-flex;
+      background: var(--surface-container);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-full);
+      padding: 3px;
+      gap: 2px;
+    }
+    .seg-btn {
+      min-height: 38px;
+      padding: 0 0.875rem;
+      border: none;
+      background: transparent;
+      border-radius: var(--rounded-full);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .seg-btn:hover {
+      color: var(--on-surface);
+      background: var(--surface-container-high);
+    }
+    .seg-btn.is-active {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .btn {
+      min-height: 44px;
+      padding: 0 1.125rem;
+      border-radius: var(--rounded-full);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out),
+                  transform var(--dur-micro) var(--ease-out),
+                  box-shadow var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      box-shadow: var(--soft-shadow);
+    }
+    .btn-emerald {
+      background: var(--tertiary);
+      color: var(--on-primary);
+    }
+    .btn-emerald:hover:not(:disabled) {
+      background: var(--on-tertiary-container);
+    }
+    .btn-secondary {
+      background: var(--surface-elevated);
+      border-color: var(--outline-button);
+      color: var(--on-surface);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-container);
+    }
+    .btn-secondary.is-armed {
+      background: var(--error-container);
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .btn-compact {
+      min-height: 36px;
+      padding: 0 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .select-input, .text-input {
+      min-height: 44px;
+      padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+      background: var(--surface-elevated);
+      border: 1px solid var(--outline);
+      border-radius: var(--rounded);
+      color: var(--on-surface);
+      font-weight: 500;
+    }
+    .text-input {
+      padding-right: 0.75rem;
+      font-family: var(--font-label);
+    }
+    .select-input:focus, .text-input:focus {
+      border-color: var(--primary);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+    }
+    .range-wrap input[type="range"] {
+      accent-color: var(--primary);
+      width: 110px;
+      cursor: pointer;
+    }
+    .mono-badge {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--rounded);
+      background: var(--surface-container);
+      color: var(--on-surface);
+      border: var(--warm-hairline);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Isometric Viewport */
+    .viewport-shell {
+      position: relative;
+      width: 100%;
+      min-height: 540px;
+      height: clamp(500px, 64vh, 680px);
+      background: var(--surface-container);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      overflow: hidden;
+      box-shadow: var(--soft-shadow-raised);
+      user-select: none;
+    }
+    .viewport-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    .viewport-canvas:active { cursor: grabbing; }
+    .viewport-canvas.is-build-mode { cursor: crosshair; }
+    .hud-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: block;
+    }
+
+    /* Viewport Floating HUDs */
+    .hud-top-left {
+      position: absolute;
+      top: var(--space-md);
+      left: var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      pointer-events: none;
+    }
+    .hud-pill {
+      pointer-events: auto;
+      background: var(--hud-backdrop);
+      backdrop-filter: blur(8px);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-full);
+      padding: 0.375rem 0.875rem;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      color: var(--on-surface);
+      box-shadow: var(--soft-shadow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--rounded-full);
+      background: var(--tertiary);
+    }
+    .status-dot.is-solving { background: var(--primary); }
+    .status-dot.is-error { background: var(--error); }
+
+    .hud-top-right {
+      position: absolute;
+      top: var(--space-md);
+      right: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: var(--space-xs);
+    }
+    .toggle-chip {
+      min-height: 36px;
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--rounded-full);
+      background: var(--hud-backdrop);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--outline-button);
+      font-size: var(--label-size);
+      font-weight: 600;
+      color: var(--on-surface);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      box-shadow: var(--soft-shadow);
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .toggle-chip.is-on {
+      background: var(--tertiary);
+      border-color: var(--tertiary);
+      color: var(--on-primary);
+    }
+
+    .hud-bottom-left {
+      position: absolute;
+      bottom: var(--space-md);
+      left: var(--space-md);
+      background: var(--hud-backdrop);
+      backdrop-filter: blur(8px);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded);
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      pointer-events: none;
+      box-shadow: var(--soft-shadow);
+    }
+    .legend-title {
+      font-family: var(--font-sans-label);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .legend-scale {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-label);
+      font-size: 0.6875rem;
+      color: var(--on-surface);
+    }
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .swatch-low { background: var(--tertiary); }
+    .swatch-mid { background: var(--data-3); }
+    .swatch-high { background: var(--primary); }
+    .swatch-zero { background: var(--error); }
+
+    .hud-bottom-right {
+      position: absolute;
+      bottom: var(--space-md);
+      right: var(--space-md);
+      background: var(--hud-backdrop);
+      backdrop-filter: blur(8px);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      padding: 0.375rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.25rem;
+      box-shadow: var(--soft-shadow);
+      max-width: calc(100% - 2rem);
+    }
+    .cam-btn {
+      min-width: 36px;
+      min-height: 36px;
+      padding: 0 0.55rem;
+      border: 1px solid transparent;
+      border-radius: var(--rounded);
+      background: transparent;
+      color: var(--on-surface);
+      font-family: var(--font-sans-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    .cam-btn:hover { background: var(--surface-container-high); }
+    .cam-btn.is-active {
+      background: var(--primary-container);
+      border-color: var(--outline-featured);
+      color: var(--on-primary-container);
+    }
+    .cam-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--outline-variant);
+      margin-inline: 2px;
+    }
+
+    .hover-readout {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: 0.625rem 0.875rem;
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded);
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+    }
+    .hover-readout strong { color: var(--on-surface); }
+
+    /* Inspector / Sidebar (Right) */
+    .inspector-column {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .panel-card {
+      background: var(--surface-container-low);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      box-shadow: var(--soft-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      border-bottom: var(--warm-hairline);
+      padding-bottom: var(--space-sm);
+    }
+    .panel-title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--headline-size);
+      line-height: 1.15;
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    /* Presets & Seed */
+    .seed-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-sm);
+      align-items: end;
+    }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-sm);
+    }
+    .preset-btn {
+      min-height: 44px;
+      padding: 0.45rem 0.65rem;
+      border-radius: var(--rounded);
+      background: var(--surface-elevated);
+      border: 1px solid var(--outline-variant);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      transition: border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+    }
+    .preset-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-container);
+    }
+    .preset-name {
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--on-surface);
+    }
+    .preset-desc {
+      font-size: 0.72rem;
+      color: var(--on-surface-variant);
+    }
+
+    /* Cell Inspector */
+    .socket-compass {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-xs);
+      background: var(--surface-container);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm);
+      text-align: center;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+    }
+    .socket-cell {
+      padding: 0.25rem 0.35rem;
+      border-radius: var(--rounded);
+      background: var(--surface-elevated);
+      border: var(--warm-hairline);
+    }
+    .socket-center {
+      background: var(--primary-container);
+      border-color: var(--outline-featured);
+      font-weight: 700;
+      color: var(--on-primary-container);
+    }
+    .socket-tag {
+      display: inline-block;
+      padding: 0 0.3rem;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 0.6875rem;
+    }
+    .sock-R { background: var(--surface-container-high); color: var(--on-surface); }
+    .sock-A { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+    .sock-F { background: var(--secondary-container); color: var(--secondary); }
+    .sock-U { background: var(--primary-container); color: var(--on-primary-container); }
+
+    .candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .candidate-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: 0.4rem 0.6rem;
+      background: var(--surface-elevated);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      cursor: pointer;
+      text-align: left;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .candidate-item:hover {
+      background: var(--primary-container);
+      border-color: var(--outline-featured);
+    }
+    .candidate-item.is-selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .candidate-item.is-selected .cand-meta { color: var(--primary-container); }
+    .cand-name {
+      font-weight: 600;
+      font-size: 0.8125rem;
+    }
+    .cand-meta {
+      font-family: var(--font-label);
+      font-size: 0.72rem;
+      color: var(--on-surface-variant);
+    }
+
+    /* Build Palette */
+    .palette-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .filter-pill {
+      min-height: 32px;
+      padding: 0 0.6rem;
+      border-radius: var(--rounded-full);
+      border: var(--warm-hairline);
+      background: var(--surface-elevated);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+    }
+    .filter-pill.is-active {
+      background: var(--tertiary);
+      border-color: var(--tertiary);
+      color: var(--on-primary);
+    }
+
+    /* 2D Mini-Matrix */
+    .minimap-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .minimap-grid {
+      display: grid;
+      gap: 2px;
+      background: var(--surface-container-high);
+      padding: 4px;
+      border-radius: var(--rounded);
+      border: var(--warm-hairline);
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      max-width: 260px;
+      margin-inline: auto;
+    }
+    .mini-cell {
+      border: none;
+      border-radius: 2px;
+      padding: 0;
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 0.625rem;
+      font-weight: 600;
+      color: var(--on-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--dur-micro) var(--ease-out);
+    }
+    .mini-cell:hover { transform: scale(1.08); z-index: 2; }
+    .mini-cell.is-selected {
+      outline: 2px solid var(--on-surface);
+      outline-offset: 1px;
+      z-index: 3;
+    }
+    .mini-cell.is-pinned::after {
+      content: "●";
+      font-size: 0.5rem;
+      color: var(--on-primary);
+    }
+
+    .solve-log {
+      font-family: var(--font-label);
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+      background: var(--surface-container);
+      border-radius: var(--rounded);
+      padding: var(--space-sm);
+      max-height: 112px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .log-entry {
+      border-left: 2px solid var(--outline);
+      padding-left: var(--space-sm);
+    }
+    .log-entry.is-fresh { border-left-color: var(--primary); color: var(--on-surface); }
+
+    /* Architectural Primer Section */
+    .primer-band {
+      background: var(--surface-container);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      border: var(--warm-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .primer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+    .primer-card {
+      background: var(--surface-elevated);
+      border: var(--warm-hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .primer-num {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .primer-card h3 {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--subhead-size);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .primer-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+      max-width: 65ch;
+    }
+    .sources-note {
+      font-size: 0.8125rem;
+      color: var(--on-surface-variant);
+      border-top: var(--warm-hairline);
+      padding-top: var(--space-sm);
+    }
+
+    @media (max-width: 1024px) {
+      .workspace { grid-template-columns: 1fr; }
+      .metrics-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .primer-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .page-grid { padding: var(--space-sm); gap: var(--space-md); }
+      .metrics-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+      .viewport-shell { min-height: 400px; height: 420px; }
+      .hud-bottom-left { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-grid">
+    <!-- Hero Header -->
+    <header class="hero-header">
+      <div class="hero-top-row">
+        <span class="kicker">Wave Function Collapse · Procedural Urbanism</span>
+        <span class="badge-emerald">
+          <i data-lucide="compass" style="width:14px;height:14px;"></i>
+          24 Modules · 4 Socket Rules
+        </span>
+      </div>
+      <h1 class="title">Forma Urbis: Roman <em>City</em> Generator</h1>
+      <p class="subtitle">
+        Explore how a Wave Function Collapse (WFC) solver constructs an entire isometric Roman municipality—linking basalt <em>viae</em>, multi-story <em>insulae</em>, atrium <em>domus</em>, elevated aqueducts, colonnaded forums, and cypress groves from pure local socket constraints.
+      </p>
+      <div class="ornament-rule">◆ Superposition · Entropy · Propagation ◆</div>
+    </header>
+
+    <!-- Arch Metric Strip -->
+    <section class="metrics-strip" aria-label="Solver telemetry">
+      <div class="arch-card is-featured">
+        <div class="arch-label">Grid Collapsed</div>
+        <div class="arch-value" id="metric-collapsed">0 / 64</div>
+        <div class="arch-caption" id="metric-status">Ready to solve</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-label">Mean Entropy</div>
+        <div class="arch-value" id="metric-entropy">0.00</div>
+        <div class="arch-caption" id="metric-entropy-sub">Shannon bits</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-label">Roman Variants</div>
+        <div class="arch-value" id="metric-variants">0</div>
+        <div class="arch-caption">From 24 base modules</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-label">Propagations</div>
+        <div class="arch-value" id="metric-props">0</div>
+        <div class="arch-caption" id="metric-retries">0 retries</div>
+      </div>
+    </section>
+
+    <!-- Primary Tool Workspace -->
+    <section class="workspace" aria-label="Interactive WFC City Simulator">
+      <!-- Left Column: Controls & Isometric 3D Viewport -->
+      <div class="stage-column">
+        <div class="toolbar-panel">
+          <div class="toolbar-row">
+            <div class="control-group">
+              <span class="control-label">Workspace Mode</span>
+              <div class="segmented" role="group" aria-label="Workspace mode">
+                <button type="button" class="seg-btn is-active" id="mode-btn-generate" onclick="setAppMode('generate')">
+                  <i data-lucide="sparkles" style="width:15px;height:15px;"></i> Generate
+                </button>
+                <button type="button" class="seg-btn" id="mode-btn-build" onclick="setAppMode('build')">
+                  <i data-lucide="hammer" style="width:15px;height:15px;"></i> Build &amp; Pin
+                </button>
+                <button type="button" class="seg-btn" id="mode-btn-museum" onclick="setAppMode('museum')">
+                  <i data-lucide="landmark" style="width:15px;height:15px;"></i> Tile Museum
+                </button>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="select-grid-size">Grid Size</label>
+              <select id="select-grid-size" class="select-input" onchange="changeGridSize(this.value)">
+                <option value="6">6 × 6 (36 tiles)</option>
+                <option value="8" selected>8 × 8 (64 tiles)</option>
+                <option value="10">10 × 10 (100 tiles)</option>
+                <option value="12">12 × 12 (144 tiles)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="select-lighting">Daylight</label>
+              <select id="select-lighting" class="select-input" onchange="setLightingPreset(this.value)">
+                <option value="meridies" selected>Meridies (Sunlit)</option>
+                <option value="vespera">Vespera (Golden Dusk)</option>
+                <option value="nox">Nox (Lantern Night)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="select-border">City Border</label>
+              <select id="select-border" class="select-input" onchange="changeBorderMode(this.value)">
+                <option value="closed" selected>Closed (Walled Edge)</option>
+                <option value="open">Open (Unconstrained)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toolbar-row">
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary" id="btn-play-pause" onclick="togglePlaySolve()">
+                <i data-lucide="play" style="width:16px;height:16px;"></i> Animate Solve
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-step" onclick="stepSolveOnce()">
+                <i data-lucide="step-forward" style="width:16px;height:16px;"></i> Step (+1)
+              </button>
+              <button type="button" class="btn btn-emerald" id="btn-instant" onclick="instantSolveAll()">
+                <i data-lucide="zap" style="width:16px;height:16px;"></i> Instant Solve
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-reset" onclick="handleResetGrid(this)">
+                <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i> Reset
+              </button>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="slider-speed">Solve Speed</label>
+              <div class="range-wrap">
+                <input type="range" id="slider-speed" min="1" max="24" value="6" oninput="setSolveSpeed(this.value)">
+                <span class="mono-badge" id="speed-readout">6 /s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Isometric Viewport -->
+        <div class="viewport-shell" id="viewport-shell">
+          <canvas id="three-canvas" class="viewport-canvas"></canvas>
+          <canvas id="hud-canvas" class="hud-canvas"></canvas>
+
+          <div class="hud-top-left">
+            <div class="hud-pill" id="hud-mode-pill">
+              <span class="status-dot" id="hud-status-dot"></span>
+              <span id="hud-status-text">Solving step-by-step</span>
+            </div>
+            <div class="hud-pill" id="hud-build-pill" style="display:none;">
+              <span>Click cell to place · <strong>R</strong> rotate · Right-click clear</span>
+            </div>
+          </div>
+
+          <div class="hud-top-right">
+            <button type="button" class="toggle-chip is-on" id="toggle-entropy-heat" onclick="toggleEntropyHeat()">
+              <i data-lucide="layers" style="width:14px;height:14px;"></i> Entropy Prisms
+            </button>
+            <button type="button" class="toggle-chip is-on" id="toggle-entropy-nums" onclick="toggleEntropyNums()">
+              <i data-lucide="hash" style="width:14px;height:14px;"></i> Entropy Numbers
+            </button>
+            <button type="button" class="toggle-chip" id="toggle-sockets" onclick="toggleSocketMarkers()">
+              <i data-lucide="git-commit-horizontal" style="width:14px;height:14px;"></i> Socket Pins
+            </button>
+          </div>
+
+          <div class="hud-bottom-left" id="entropy-legend">
+            <span class="legend-title">Superposition Entropy</span>
+            <div class="legend-scale">
+              <span><span class="legend-swatch swatch-low"></span> Low (1–4)</span>
+              <span><span class="legend-swatch swatch-mid"></span> Mid</span>
+              <span><span class="legend-swatch swatch-high"></span> High</span>
+              <span><span class="legend-swatch swatch-zero"></span> 0 (Conflict)</span>
+            </div>
+          </div>
+
+          <div class="hud-bottom-right" role="group" aria-label="Camera controls">
+            <button type="button" class="cam-btn" onclick="orbitStep(-1)" title="Orbit Left (Q)">
+              <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i> -45°
+            </button>
+            <button type="button" class="cam-btn" onclick="orbitStep(1)" title="Orbit Right (E)">
+              <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i> +45°
+            </button>
+            <div class="cam-divider"></div>
+            <button type="button" class="cam-btn" onclick="zoomStep(0.84)" title="Zoom In">+</button>
+            <button type="button" class="cam-btn" onclick="zoomStep(1.18)" title="Zoom Out">−</button>
+            <div class="cam-divider"></div>
+            <button type="button" class="cam-btn is-active" id="cam-preset-iso" onclick="setCameraPreset('iso')">Iso</button>
+            <button type="button" class="cam-btn" id="cam-preset-top" onclick="setCameraPreset('top')">Plan</button>
+            <button type="button" class="cam-btn" id="cam-preset-low" onclick="setCameraPreset('low')">Skyline</button>
+            <button type="button" class="cam-btn" onclick="resetCameraView()" title="Reset Camera">Reset</button>
+          </div>
+        </div>
+
+        <div class="hover-readout" id="hover-readout">
+          <span><strong>Controls:</strong> Drag to orbit · Right-drag or WASD to pan · Scroll to zoom · Click any tile to inspect its entropy &amp; sockets.</span>
+          <span class="mono-badge" id="hover-coords">Cell —</span>
+        </div>
+      </div>
+
+      <!-- Right Column: Seed, Inspector / Build Palette, 2D Entropy Map -->
+      <aside class="inspector-column" aria-label="City parameters and cell inspector">
+        <!-- Seed & Architectural Presets -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <h2 class="panel-title">Seed &amp; District Presets</h2>
+            <span class="mono-badge" id="seed-badge">#MMXXVI</span>
+          </div>
+
+          <div class="seed-row">
+            <div class="control-group">
+              <label class="control-label" for="input-seed">City Seed</label>
+              <input type="text" id="input-seed" class="text-input" value="ROMA-753" onchange="applySeed(this.value)">
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="randomizeSeed()">
+              <i data-lucide="shuffle" style="width:15px;height:15px;"></i> New Seed
+            </button>
+          </div>
+
+          <div class="control-group">
+            <span class="control-label">Constrained Scenarios (Pre-Pinned Landmarks)</span>
+            <div class="preset-grid">
+              <button type="button" class="preset-btn" onclick="loadScenario('imperial')">
+                <span class="preset-name">Imperial Forum</span>
+                <span class="preset-desc">Temple + plaza core</span>
+              </button>
+              <button type="button" class="preset-btn" onclick="loadScenario('aqueduct')">
+                <span class="preset-name">Aqua Claudia</span>
+                <span class="preset-desc">Aqueduct overpass axis</span>
+              </button>
+              <button type="button" class="preset-btn" onclick="loadScenario('villas')">
+                <span class="preset-name">Patrician Hills</span>
+                <span class="preset-desc">Domus &amp; cypress groves</span>
+              </button>
+              <button type="button" class="preset-btn" onclick="loadScenario('blank')">
+                <span class="preset-name">Blank Superposition</span>
+                <span class="preset-desc">Uncollapsed WFC start</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cell Inspector (Generate / Inspect mode) -->
+        <div class="panel-card" id="panel-inspector">
+          <div class="panel-header">
+            <h2 class="panel-title" id="inspector-title">Cell Inspector</h2>
+            <span class="mono-badge" id="inspector-coords">(0, 0)</span>
+          </div>
+          <p id="inspector-summary" style="margin:0; font-size:0.875rem; color:var(--on-surface-variant);">
+            Click any cell in the 3D viewport or 2D entropy matrix below to inspect its collapsed Roman module or remaining superposition candidates.
+          </p>
+
+          <div class="socket-compass" id="inspector-compass">
+            <div></div>
+            <div class="socket-cell">N (−Z): <span id="sock-n" class="socket-tag sock-U">U</span></div>
+            <div></div>
+            <div class="socket-cell">W (−X): <span id="sock-w" class="socket-tag sock-U">U</span></div>
+            <div class="socket-cell socket-center" id="sock-center">H = 0.0</div>
+            <div class="socket-cell">E (+X): <span id="sock-e" class="socket-tag sock-U">U</span></div>
+            <div></div>
+            <div class="socket-cell">S (+Z): <span id="sock-s" class="socket-tag sock-U">U</span></div>
+            <div></div>
+          </div>
+
+          <div id="inspector-candidates-wrap">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-xs);">
+              <span class="control-label" id="candidates-heading">Surviving Candidates</span>
+              <button type="button" class="btn btn-primary btn-compact" id="btn-collapse-selected" onclick="collapseSelectedCell()" style="display:none;">
+                Collapse Cell
+              </button>
+            </div>
+            <div class="candidate-list" id="inspector-candidates"></div>
+          </div>
+        </div>
+
+        <!-- Build Palette (Build & Pin mode) -->
+        <div class="panel-card" id="panel-build-palette" style="display:none;">
+          <div class="panel-header">
+            <h2 class="panel-title">Roman Module Palette</h2>
+            <button type="button" class="btn btn-secondary btn-compact" onclick="rotateBuildBrush()">
+              <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i> Rotate (R)
+            </button>
+          </div>
+
+          <div class="palette-filter" id="palette-filters">
+            <button type="button" class="filter-pill is-active" onclick="setPaletteFilter('all', this)">All</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('roads', this)">Roads</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('aqueducts', this)">Aqueducts</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('insulae', this)">Insulae</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('domus', this)">Domus</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('forums', this)">Forums</button>
+            <button type="button" class="filter-pill" onclick="setPaletteFilter('gardens', this)">Gardens</button>
+          </div>
+
+          <div class="candidate-list" id="build-module-list" style="max-height:240px;"></div>
+
+          <div class="btn-row" style="justify-content:space-between;">
+            <span class="mono-badge" id="brush-status">Brush: Auto-Fit · 0°</span>
+            <button type="button" class="btn btn-emerald btn-compact" onclick="solveAroundPins()">
+              <i data-lucide="wand-2" style="width:14px;height:14px;"></i> Fill with WFC
+            </button>
+          </div>
+        </div>
+
+        <!-- 2D Entropy Matrix & Step Log -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <h2 class="panel-title">Entropy Matrix &amp; Log</h2>
+            <span class="mono-badge" id="minimap-summary">Live Map</span>
+          </div>
+          <div class="minimap-wrap">
+            <div class="minimap-grid" id="minimap-grid" role="grid" aria-label="2D city entropy grid"></div>
+            <div class="solve-log" id="solve-log" aria-live="polite"></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Algorithmic Primer -->
+    <section class="primer-band" aria-label="How the Wave Function Collapse engine works">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-sm);">
+        <h2 class="panel-title">How Roman WFC Works</h2>
+        <span class="badge-emerald">Socket Symmetry · MRV Heuristic · Domino Propagation</span>
+      </div>
+      <div class="primer-grid">
+        <article class="primer-card">
+          <span class="primer-num">01 / SUPERPOSITION &amp; ENTROPY</span>
+          <h3>Every Cell Begins Uncertain</h3>
+          <p>
+            Initially, each tile in the city grid holds all 68 oriented Roman variants simultaneously. The solver computes weighted Shannon entropy <em>H</em> per cell—fewer compatible tiles produce lower entropy (shown in zellige emerald).
+          </p>
+        </article>
+        <article class="primer-card">
+          <span class="primer-num">02 / COLLAPSE &amp; PROPAGATION</span>
+          <h3>Domino Constraint Cascades</h3>
+          <p>
+            Each step picks the lowest-entropy cell, collapses it to one weighted tile (with spatial affinity for forums, gardens, and straight roads), and strips incompatible sockets from neighbors using fast bitwise masks.
+          </p>
+        </article>
+        <article class="primer-card">
+          <span class="primer-num">03 / SOCKET GRAMMAR &amp; MUSEUM</span>
+          <h3>Four Edge Languages</h3>
+          <p>
+            Every module declares four directional sockets: <strong>R</strong> (Via Romana), <strong>A</strong> (Aqueduct Specus), <strong>F</strong> (Forum Plaza), and <strong>U</strong> (Urban Margin). Switch to <strong>Tile Museum</strong> to inspect every procedural mesh and socket side-by-side.
+          </p>
+        </article>
+      </div>
+      <div class="sources-note">
+        Engine concepts adapted from procedural WebGL Wave Function Collapse architecture (inspired by <em>Arcanum: a WFC magic school</em> and Wawa Sensei’s WFC design principles: bitset propagation, socket symmetry, affinity weighting, and side-by-side module museums). All 3D Roman geometry is procedurally synthesized in-browser via Three.js.
+      </div>
+    </section>
+  </main>
+
+  <api-shim></api-shim>
+  <script>
+    // =========================================================================
+    // 1. DETERMINISTIC PRNG & MATH HELPERS
+    // =========================================================================
+    function hashSeed(str) {
+      let h = 2166136261 >>> 0;
+      const s = String(str || 'ROMA-753');
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function createPRNG(seedNum) {
+      let a = (seedNum >>> 0) || 1;
+      return function () {
+        a |= 0;
+        a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // Directions: 0 = N (-Z), 1 = E (+X), 2 = S (+Z), 3 = W (-X)
+    const DIRS = [
+      { dx: 0, dz: -1, name: 'N', opp: 2 },
+      { dx: 1, dz: 0, name: 'E', opp: 3 },
+      { dx: 0, dz: 1, name: 'S', opp: 0 },
+      { dx: -1, dz: 0, name: 'W', opp: 1 }
+    ];
+
+    const SOCKET_LABELS = {
+      R: `Via (Road)`,
+      A: `Aqueduct`,
+      F: `Forum Plaza`,
+      U: `Urban Margin`
+    };
+
+    // =========================================================================
+    // 2. ROMAN MODULE CATALOGUE (24 MODULES -> ~68 ORIENTED VARIANTS)
+    // Sockets order: [N (-Z), E (+X), S (+Z), W (-X)]
+    // =========================================================================
+    const BASE_MODULES = [
+      // ROADS (Via Romana)
+      {
+        id: 'road_straight',
+        name: `Via Romana (Straight)`,
+        family: 'roads',
+        sockets: ['R', 'U', 'R', 'U'],
+        weight: 14,
+        rotations: [0, 1],
+        desc: `Basalt-paved thoroughfare with raised travertine crepidines and milestone markers.`
+      },
+      {
+        id: 'road_corner',
+        name: `Via Corner Bend`,
+        family: 'roads',
+        sockets: ['R', 'R', 'U', 'U'],
+        weight: 9,
+        rotations: [0, 1, 2, 3],
+        desc: `90-degree paved street turn anchored by a public street-corner fountain shrine.`
+      },
+      {
+        id: 'road_t',
+        name: `Via T-Junction`,
+        family: 'roads',
+        sockets: ['R', 'R', 'U', 'R'],
+        weight: 7,
+        rotations: [0, 1, 2, 3],
+        desc: `Three-way urban intersection with bronze oil-lamp braziers on the kerb.`
+      },
+      {
+        id: 'road_cross',
+        name: `Cardo–Decumanus Cross`,
+        family: 'roads',
+        sockets: ['R', 'R', 'R', 'R'],
+        weight: 4,
+        rotations: [0],
+        solitary: true,
+        desc: `Monumental four-way crossroads crowned by a miniature stone tetrapylon.`
+      },
+      {
+        id: 'road_gate',
+        name: `Triumphal Terminus Arch`,
+        family: 'roads',
+        sockets: ['R', 'U', 'U', 'U'],
+        weight: 4,
+        rotations: [0, 1, 2, 3],
+        desc: `Single-bay travertine triumphal arch terminating an urban street axis.`
+      },
+
+      // AQUEDUCTS (Aqua Claudia)
+      {
+        id: 'aqua_straight',
+        name: `Aqueduct Arcade`,
+        family: 'aqueducts',
+        sockets: ['A', 'U', 'A', 'U'],
+        weight: 8,
+        rotations: [0, 1],
+        desc: `Twin-tiered travertine arches carrying an elevated water specus across the district.`
+      },
+      {
+        id: 'aqua_overpass',
+        name: `Aqueduct Road Overpass`,
+        family: 'aqueducts',
+        sockets: ['A', 'R', 'A', 'R'],
+        weight: 7,
+        rotations: [0, 1],
+        desc: `Grand monumental arch carrying the water channel overhead while a Via passes beneath.`
+      },
+      {
+        id: 'aqua_corner',
+        name: `Aqueduct Elbow Pier`,
+        family: 'aqueducts',
+        sockets: ['A', 'A', 'U', 'U'],
+        weight: 3,
+        rotations: [0, 1, 2, 3],
+        desc: `Buttressed limestone corner pier redirecting the elevated aqueduct channel.`
+      },
+      {
+        id: 'aqua_castellum',
+        name: `Castellum Aquae`,
+        family: 'aqueducts',
+        sockets: ['A', 'U', 'R', 'U'],
+        weight: 5,
+        rotations: [0, 1, 2, 3],
+        desc: `Domed settling reservoir and street-facing nymphaeum terminating an aqueduct.`
+      },
+      {
+        id: 'aqua_spring',
+        name: `Aqueduct Spring Tower`,
+        family: 'aqueducts',
+        sockets: ['A', 'U', 'U', 'U'],
+        weight: 3,
+        rotations: [0, 1, 2, 3],
+        desc: `Elevated masonry intake tower anchoring the start of a city water line.`
+      },
+
+      // INSULAE (Roman Apartment Tenements)
+      {
+        id: 'insula_street',
+        name: `Insula Tabernae`,
+        family: 'insulae',
+        sockets: ['U', 'U', 'R', 'U'],
+        weight: 14,
+        rotations: [0, 1, 2, 3],
+        desc: `Four-story brick-and-plaster tenement with arched ground-floor shops facing the street.`
+      },
+      {
+        id: 'insula_corner',
+        name: `Corner Insula Block`,
+        family: 'insulae',
+        sockets: ['U', 'R', 'R', 'U'],
+        weight: 9,
+        rotations: [0, 1, 2, 3],
+        desc: `L-plan urban apartment block wrapping two streets with a corner thermopolium counter.`
+      },
+      {
+        id: 'insula_horrea',
+        name: `Horrea Granary Court`,
+        family: 'insulae',
+        sockets: ['U', 'U', 'U', 'U'],
+        weight: 5,
+        rotations: [0, 1],
+        desc: `Interior-block brick warehouse and courtyard housing amphorae and grain stores.`
+      },
+
+      // DOMUS (Aristocratic Courtyard Villas)
+      {
+        id: 'domus_atrium',
+        name: `Atrium Domus`,
+        family: 'domus',
+        sockets: ['U', 'U', 'R', 'U'],
+        weight: 10,
+        rotations: [0, 1, 2, 3],
+        desc: `Patrician residence featuring an open compluvium roof above a sunlit impluvium pool.`
+      },
+      {
+        id: 'domus_peristyle',
+        name: `Peristyle Villa Wing`,
+        family: 'domus',
+        sockets: ['U', 'U', 'U', 'U'],
+        weight: 7,
+        rotations: [0, 1],
+        desc: `Secluded terracotta portico enclosing a miniature courtyard fountain and frescoed walls.`
+      },
+
+      // FORUMS (Civic Plazas & Temples)
+      {
+        id: 'forum_plaza',
+        name: `Forum Marble Plaza`,
+        family: 'forums',
+        sockets: ['F', 'F', 'F', 'F'],
+        weight: 8,
+        rotations: [0],
+        desc: `Open travertine civic square with bronze equestrian statue and orator's rostra.`
+      },
+      {
+        id: 'forum_colonnade',
+        name: `Forum Street Portico`,
+        family: 'forums',
+        sockets: ['F', 'F', 'R', 'F'],
+        weight: 8,
+        rotations: [0, 1, 2, 3],
+        desc: `Stepped Corinthian colonnade opening directly from a Via Romana into the Forum.`
+      },
+      {
+        id: 'forum_edge',
+        name: `Forum Colonnade Wall`,
+        family: 'forums',
+        sockets: ['U', 'F', 'F', 'F'],
+        weight: 8,
+        rotations: [0, 1, 2, 3],
+        desc: `Marble perimeter stoa framing the northern or lateral edge of a Roman Forum.`
+      },
+      {
+        id: 'forum_corner',
+        name: `Forum Corner Stoa`,
+        family: 'forums',
+        sockets: ['U', 'U', 'F', 'F'],
+        weight: 7,
+        rotations: [0, 1, 2, 3],
+        desc: `L-shaped colonnaded pavilion turning the corner of an imperial plaza.`
+      },
+      {
+        id: 'forum_temple',
+        name: `Capitoline Temple`,
+        family: 'forums',
+        sockets: ['U', 'U', 'F', 'U'],
+        weight: 5,
+        rotations: [0, 1, 2, 3],
+        solitary: true,
+        desc: `Raised-podium hexastyle temple with triangular pediment and glowing altar brazier.`
+      },
+      {
+        id: 'forum_passage',
+        name: `Forum Arch Arcade`,
+        family: 'forums',
+        sockets: ['F', 'U', 'F', 'U'],
+        weight: 4,
+        rotations: [0, 1],
+        desc: `Twin-sided travertine portico gallery linking adjacent civic plaza courts.`
+      },
+
+      // CYPRESS GARDENS (Horti & Sacred Groves)
+      {
+        id: 'garden_cypress',
+        name: `Cypress Grove`,
+        family: 'gardens',
+        sockets: ['U', 'U', 'U', 'U'],
+        weight: 10,
+        rotations: [0, 1],
+        desc: `Sculpted Mediterranean garden of slender dark cypresses, stone pines, and gravel walks.`
+      },
+      {
+        id: 'garden_nymphaeum',
+        name: `Nymphaeum Park`,
+        family: 'gardens',
+        sockets: ['U', 'U', 'R', 'U'],
+        weight: 6,
+        rotations: [0, 1, 2, 3],
+        desc: `Street-facing sacred cypress garden with a semicircular travertine water basin.`
+      },
+      {
+        id: 'garden_pergola',
+        name: `Orchard & Pergola`,
+        family: 'gardens',
+        sockets: ['U', 'U', 'U', 'U'],
+        weight: 6,
+        rotations: [0, 1],
+        desc: `Timber vine pergola flanked by cypress trees and terracotta olive-oil amphorae.`
+      }
+    ];
+
+    // Expand base modules into unique oriented variants
+    const VARIANTS = [];
+    const MODULE_BY_ID = {};
+    BASE_MODULES.forEach((mod) => {
+      MODULE_BY_ID[mod.id] = mod;
+      const seenSignatures = new Set();
+      mod.rotations.forEach((rot) => {
+        // Rotate clockwise by rot * 90 deg:
+        // Original [N, E, S, W] -> after 1 CW turn: [W, N, E, S]
+        const s = mod.sockets;
+        const rotated = [
+          s[(4 - rot) % 4],
+          s[(5 - rot) % 4],
+          s[(6 - rot) % 4],
+          s[(7 - rot) % 4]
+        ];
+        const sig = rotated.join('|') + ':' + rot;
+        if (!seenSignatures.has(sig)) {
+          seenSignatures.add(sig);
+          VARIANTS.push({
+            index: VARIANTS.length,
+            moduleId: mod.id,
+            name: mod.name,
+            family: mod.family,
+            desc: mod.desc,
+            rot: rot,
+            sockets: rotated,
+            weight: mod.weight / mod.rotations.length,
+            solitary: !!mod.solitary
+          });
+        }
+      });
+    });
+
+    const ALL_MASK = (1n << BigInt(VARIANTS.length)) - 1n;
+    const VARIANT_BITS = VARIANTS.map((v) => 1n << BigInt(v.index));
+    const LOG_WEIGHTS = VARIANTS.map((v) => v.weight * Math.log(v.weight));
+
+    // Precompute compatibility bitmasks: compat[vIndex][dir] = BigInt mask of allowed neighbors in dir
+    const COMPAT = VARIANTS.map((v) => {
+      return [0, 1, 2, 3].map((dir) => {
+        const opp = DIRS[dir].opp;
+        const neededSocket = v.sockets[dir];
+        let mask = 0n;
+        for (let j = 0; j < VARIANTS.length; j++) {
+          if (VARIANTS[j].sockets[opp] === neededSocket) {
+            // If solitary, prevent identical moduleId adjacent
+            if (v.solitary && VARIANTS[j].moduleId === v.moduleId) continue;
+            mask |= VARIANT_BITS[j];
+          }
+        }
+        return mask;
+      });
+    });
+
+    // Precompute border-allowed mask (Closed border requires outward side socket === 'U')
+    const BORDER_SIDE_MASK = [0, 1, 2, 3].map((dir) => {
+      let mask = 0n;
+      for (let j = 0; j < VARIANTS.length; j++) {
+        if (VARIANTS[j].sockets[dir] === 'U') {
+          mask |= VARIANT_BITS[j];
+        }
+      }
+      return mask;
+    });
+
+    function countBits(mask) {
+      let count = 0;
+      let m = mask;
+      while (m > 0n) {
+        m &= (m - 1n);
+        count++;
+      }
+      return count;
+    }
+
+    function listVariantsFromMask(mask) {
+      const list = [];
+      for (let i = 0; i < VARIANTS.length; i++) {
+        if ((mask & VARIANT_BITS[i]) !== 0n) list.push(VARIANTS[i]);
+      }
+      return list;
+    }
+
+    // =========================================================================
+    // 3. WFC SOLVER ENGINE STATE
+    // =========================================================================
+    const appState = {
+      gridSize: 8,
+      borderMode: 'closed',
+      lighting: 'meridies',
+      mode: 'generate', // 'generate' | 'build' | 'museum'
+      seed: 'ROMA-753',
+      solveSpeed: 6,
+      isPlaying: false,
+      showEntropyHeat: true,
+      showEntropyNums: true,
+      showSocketPins: false,
+      cameraPreset: 'iso',
+      selectedCell: { x: 3, z: 3 },
+      hoveredCell: null,
+      pinnedCells: [], // [{x, z, variantIndex}]
+      brushModuleId: 'auto',
+      brushRot: 0,
+      paletteFilter: 'all'
+    };
+
+    const solver = {
+      size: 8,
+      cells: [], // { x, z, mask, collapsed: number (-1 if uncollapsed), pinned: boolean, entropy: number, count: number, animT: number, flashT: number }
+      prng: createPRNG(hashSeed('ROMA-753')),
+      propagations: 0,
+      retries: 0,
+      stepCount: 0,
+      contradiction: false,
+      maxEntropy: 1,
+      logs: []
+    };
+
+    function computeCellMetrics(cell) {
+      if (cell.collapsed >= 0) {
+        cell.count = 1;
+        cell.entropy = 0;
+        return;
+      }
+      let sumW = 0;
+      let sumWLogW = 0;
+      let count = 0;
+      const m = cell.mask;
+      for (let i = 0; i < VARIANTS.length; i++) {
+        if ((m & VARIANT_BITS[i]) !== 0n) {
+          const w = VARIANTS[i].weight;
+          sumW += w;
+          sumWLogW += LOG_WEIGHTS[i];
+          count++;
+        }
+      }
+      cell.count = count;
+      if (count <= 0 || sumW <= 0) {
+        cell.entropy = 0;
+      } else if (count === 1) {
+        cell.entropy = 0;
+      } else {
+        // Shannon entropy in bits (base 2)
+        const hNats = Math.log(sumW) - sumWLogW / sumW;
+        cell.entropy = Math.max(0.01, hNats / Math.LN2);
+      }
+    }
+
+    function initSolver(preservePins = true) {
+      const N = appState.gridSize;
+      solver.size = N;
+      solver.prng = createPRNG(hashSeed(appState.seed));
+      solver.propagations = 0;
+      solver.stepCount = 0;
+      solver.contradiction = false;
+      solver.cells = [];
+      solver.logs = [];
+
+      for (let z = 0; z < N; z++) {
+        for (let x = 0; x < N; x++) {
+          let mask = ALL_MASK;
+          if (appState.borderMode === 'closed') {
+            if (z === 0) mask &= BORDER_SIDE_MASK[0];
+            if (x === N - 1) mask &= BORDER_SIDE_MASK[1];
+            if (z === N - 1) mask &= BORDER_SIDE_MASK[2];
+            if (x === 0) mask &= BORDER_SIDE_MASK[3];
+          }
+          const cell = {
+            x,
+            z,
+            mask,
+            collapsed: -1,
+            pinned: false,
+            entropy: 0,
+            count: 0,
+            animT: 0,
+            flashT: 0
+          };
+          computeCellMetrics(cell);
+          solver.cells.push(cell);
+        }
+      }
+
+      // Compute max theoretical entropy for heatmap normalization
+      const probe = { mask: ALL_MASK, collapsed: -1, entropy: 0, count: 0 };
+      computeCellMetrics(probe);
+      solver.maxEntropy = Math.max(1, probe.entropy);
+
+      // Apply pinned constraints
+      if (preservePins && appState.pinnedCells.length > 0) {
+        const validPins = [];
+        for (const pin of appState.pinnedCells) {
+          if (pin.x >= 0 && pin.x < N && pin.z >= 0 && pin.z < N && pin.variantIndex >= 0 && pin.variantIndex < VARIANTS.length) {
+            const c = getCell(pin.x, pin.z);
+            if ((c.mask & VARIANT_BITS[pin.variantIndex]) !== 0n) {
+              c.mask = VARIANT_BITS[pin.variantIndex];
+              c.collapsed = pin.variantIndex;
+              c.pinned = true;
+              c.animT = 1;
+              computeCellMetrics(c);
+              propagateFrom(c.x, c.z);
+              validPins.push(pin);
+            }
+          }
+        }
+        appState.pinnedCells = validPins;
+      }
+
+      if (appState.selectedCell.x >= N || appState.selectedCell.z >= N) {
+        appState.selectedCell = { x: Math.floor(N / 2), z: Math.floor(N / 2) };
+      }
+
+      addSolverLog(`Initialized ${N}×${N} superposition (${VARIANTS.length} variants).`, true);
+      rebuildSceneFromSolver(true);
+      updateAllUI();
+    }
+
+    function getCell(x, z) {
+      if (x < 0 || z < 0 || x >= solver.size || z >= solver.size) return null;
+      return solver.cells[z * solver.size + x];
+    }
+
+    function propagateFrom(startX, startZ) {
+      const queue = [{ x: startX, z: startZ }];
+      const inQueue = new Set([`${startX},${startZ}`]);
+
+      while (queue.length > 0) {
+        const cur = queue.shift();
+        inQueue.delete(`${cur.x},${cur.z}`);
+        const cell = getCell(cur.x, cur.z);
+        if (!cell || cell.mask === 0n) continue;
+
+        for (let dir = 0; dir < 4; dir++) {
+          const d = DIRS[dir];
+          const nx = cur.x + d.dx;
+          const nz = cur.z + d.dz;
+          const neighbor = getCell(nx, nz);
+          if (!neighbor || neighbor.collapsed >= 0) continue;
+
+          // Union of allowed neighbor masks across all surviving options in cur
+          let allowed = 0n;
+          for (let i = 0; i < VARIANTS.length; i++) {
+            if ((cell.mask & VARIANT_BITS[i]) !== 0n) {
+              allowed |= COMPAT[i][dir];
+            }
+          }
+
+          const nextMask = neighbor.mask & allowed;
+          if (nextMask !== neighbor.mask) {
+            neighbor.mask = nextMask;
+            neighbor.flashT = 1.0;
+            computeCellMetrics(neighbor);
+            solver.propagations++;
+
+            if (nextMask === 0n) {
+              solver.contradiction = true;
+              addSolverLog(`Contradiction at (${nx},${nz}) — 0 candidates left.`, true);
+              return false;
+            }
+            // Auto-collapse singleton? Keep explicit collapse for step visibility OR auto-observe?
+            // Keeping singleton uncollapsed until next MRV step makes step-by-step crystal clear,
+            // because MRV immediately picks count === 1 next with H ~ 0!
+            const key = `${nx},${nz}`;
+            if (!inQueue.has(key)) {
+              queue.push({ x: nx, z: nz });
+              inQueue.add(key);
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function pickNextMRVCell() {
+      let best = null;
+      let bestScore = Infinity;
+      for (const cell of solver.cells) {
+        if (cell.collapsed >= 0) continue;
+        if (cell.count === 0) return cell;
+        // Favor 1-option cells first, then lowest entropy + tiny jitter
+        const jitter = solver.prng() * 0.0005;
+        const score = (cell.count === 1 ? -10 : cell.entropy) + jitter;
+        if (score < bestScore) {
+          bestScore = score;
+          best = cell;
+        }
+      }
+      return best;
+    }
+
+    function chooseWeightedVariant(cell) {
+      const candidates = [];
+      let totalW = 0;
+
+      // Neighbor family affinity (inspired by Arcanum solver.ts!)
+      const neighborFamilies = {};
+      for (let d = 0; d < 4; d++) {
+        const nb = getCell(cell.x + DIRS[d].dx, cell.z + DIRS[d].dz);
+        if (nb && nb.collapsed >= 0) {
+          const fam = VARIANTS[nb.collapsed].family;
+          neighborFamilies[fam] = (neighborFamilies[fam] || 0) + 1;
+        }
+      }
+
+      for (let i = 0; i < VARIANTS.length; i++) {
+        if ((cell.mask & VARIANT_BITS[i]) !== 0n) {
+          const v = VARIANTS[i];
+          let w = v.weight;
+          // Affinity boost: gardens & domus & forums cluster naturally
+          if (neighborFamilies[v.family]) {
+            if (v.family === 'forums') w *= 1 + 0.9 * neighborFamilies[v.family];
+            else if (v.family === 'gardens' || v.family === 'domus') w *= 1 + 0.55 * neighborFamilies[v.family];
+            else if (v.family === 'aqueducts') w *= 1 + 0.35 * neighborFamilies[v.family];
+          }
+          candidates.push({ index: i, w });
+          totalW += w;
+        }
+      }
+      if (candidates.length === 0) return -1;
+      let r = solver.prng() * totalW;
+      for (const c of candidates) {
+        r -= c.w;
+        if (r <= 0) return c.index;
+      }
+      return candidates[candidates.length - 1].index;
+    }
+
+    function collapseCellWithVariant(cell, variantIndex) {
+      if (!cell || variantIndex < 0) return false;
+      cell.mask = VARIANT_BITS[variantIndex];
+      cell.collapsed = variantIndex;
+      cell.animT = 0.05;
+      computeCellMetrics(cell);
+      solver.stepCount++;
+
+      const v = VARIANTS[variantIndex];
+      addSolverLog(`#${solver.stepCount}: (${cell.x},${cell.z}) → ${v.name} [${v.rot * 90}°]`, true);
+
+      const ok = propagateFrom(cell.x, cell.z);
+      updateCellMesh(cell);
+      return ok;
+    }
+
+    function stepWFC(autoRetryOnContradiction = true) {
+      if (solver.contradiction) {
+        if (autoRetryOnContradiction) {
+          retrySolverWithNewSalt();
+          return 'retried';
+        }
+        return 'contradiction';
+      }
+
+      const target = pickNextMRVCell();
+      if (!target) {
+        appState.isPlaying = false;
+        updatePlayButton();
+        return 'done';
+      }
+      if (target.count === 0) {
+        solver.contradiction = true;
+        if (autoRetryOnContradiction) {
+          retrySolverWithNewSalt();
+          return 'retried';
+        }
+        return 'contradiction';
+      }
+
+      const chosen = chooseWeightedVariant(target);
+      const ok = collapseCellWithVariant(target, chosen);
+      if (!ok && autoRetryOnContradiction) {
+        retrySolverWithNewSalt();
+        return 'retried';
+      }
+      return ok ? 'stepped' : 'contradiction';
+    }
+
+    function retrySolverWithNewSalt() {
+      solver.retries++;
+      const prevRetries = solver.retries;
+      const saltedSeed = `${appState.seed}#retry${prevRetries}`;
+      initSolver(true);
+      solver.retries = prevRetries;
+      solver.prng = createPRNG(hashSeed(saltedSeed));
+      addSolverLog(`Auto-backtracked & retried (attempt #${prevRetries}).`, true);
+    }
+
+    function solveInstant() {
+      appState.isPlaying = false;
+      let safety = 0;
+      const maxAttempts = 18;
+      while (safety < maxAttempts) {
+        let guard = solver.size * solver.size + 10;
+        while (guard-- > 0) {
+          const res = stepWFC(false);
+          if (res === 'done') {
+            // Trigger staggered pop-in wave
+            for (const c of solver.cells) {
+              if (!c.pinned) c.animT = 0.08;
+            }
+            updateAllUI();
+            return true;
+          }
+          if (res === 'contradiction') break;
+        }
+        safety++;
+        retrySolverWithNewSalt();
+      }
+      updateAllUI();
+      return false;
+    }
+
+    function addSolverLog(msg, fresh = false) {
+      solver.logs.unshift({ msg, fresh });
+      if (solver.logs.length > 24) solver.logs.length = 24;
+    }
+
+    // =========================================================================
+    // 4. PROCEDURAL THREE.JS ROMAN ARCHITECTURE + FALLBACK 2D ISOMETRIC ENGINE
+    // =========================================================================
+    const TILE_SIZE = 4; // Each cell is 4×4 world units (spanning [-2, 2])
+    let useWebGL = true;
+    let renderer, scene, orthoCamera, sunLight, hemiLight, ambientLight;
+    let cityGroup, entropyGroup, socketGroup, highlightMesh, museumGroup;
+    let cellGroups = []; // parallel to solver.cells
+    let animatedWaters = [];
+    let emissiveMaterials = [];
+    let raycaster, pointerNDC;
+
+    // Camera Orbit/Pan/Zoom state (Orthographic Isometric)
+    const camState = {
+      azimuth: Math.PI * 0.25,     // 45° isometric
+      elevation: 0.6154797,        // arctan(1/sqrt(2)) ~ 35.264° true isometric!
+      zoom: 1.0,
+      targetX: 0,
+      targetZ: 0,
+      dragging: false,
+      dragMode: 'orbit', // 'orbit' | 'pan'
+      lastX: 0,
+      lastY: 0,
+      downX: 0,
+      downY: 0
+    };
+
+    const keysDown = new Set();
+
+    // Shared Roman Material Library
+    const MATS = {};
+    function initMaterials() {
+      MATS.travertine = new THREE.MeshStandardMaterial({ color: 0xeadfcd, roughness: 0.85, metalness: 0.04 });
+      MATS.marble = new THREE.MeshStandardMaterial({ color: 0xf7f2e9, roughness: 0.55, metalness: 0.06 });
+      MATS.plaster = new THREE.MeshStandardMaterial({ color: 0xf2e6d5, roughness: 0.9, metalness: 0.02 });
+      MATS.stuccoWarm = new THREE.MeshStandardMaterial({ color: 0xe6cbb1, roughness: 0.88, metalness: 0.02 });
+      MATS.brick = new THREE.MeshStandardMaterial({ color: 0xc26a4a, roughness: 0.86, metalness: 0.03 });
+      MATS.terracotta = new THREE.MeshStandardMaterial({ color: 0xb84a24, roughness: 0.78, metalness: 0.05 });
+      MATS.terracottaDark = new THREE.MeshStandardMaterial({ color: 0x933617, roughness: 0.82, metalness: 0.04 });
+      MATS.basalt = new THREE.MeshStandardMaterial({ color: 0x56504b, roughness: 0.92, metalness: 0.05 });
+      MATS.basaltLight = new THREE.MeshStandardMaterial({ color: 0x736b64, roughness: 0.88, metalness: 0.04 });
+      MATS.soil = new THREE.MeshStandardMaterial({ color: 0xc9b597, roughness: 0.96, metalness: 0.0 });
+      MATS.grass = new THREE.MeshStandardMaterial({ color: 0x6b8b55, roughness: 0.92, metalness: 0.0 });
+      MATS.cypressDark = new THREE.MeshStandardMaterial({ color: 0x1d4b37, roughness: 0.88, metalness: 0.02 });
+      MATS.cypressMid = new THREE.MeshStandardMaterial({ color: 0x2b6349, roughness: 0.85, metalness: 0.02 });
+      MATS.wood = new THREE.MeshStandardMaterial({ color: 0x6f4b32, roughness: 0.86, metalness: 0.03 });
+      MATS.bronze = new THREE.MeshStandardMaterial({ color: 0xc5973d, roughness: 0.35, metalness: 0.75 });
+      MATS.water = new THREE.MeshStandardMaterial({
+        color: 0x288c80,
+        emissive: 0x0c332f,
+        emissiveIntensity: 0.35,
+        roughness: 0.18,
+        metalness: 0.15
+      });
+      MATS.windowGlow = new THREE.MeshStandardMaterial({
+        color: 0x3b2a20,
+        emissive: 0xffb347,
+        emissiveIntensity: 0.15,
+        roughness: 0.4
+      });
+      MATS.brazierFire = new THREE.MeshStandardMaterial({
+        color: 0xff9b26,
+        emissive: 0xff6a00,
+        emissiveIntensity: 0.9,
+        roughness: 0.3
+      });
+      emissiveMaterials = [MATS.windowGlow, MATS.brazierFire];
+
+      // Entropy prism materials
+      MATS.entLow = new THREE.MeshStandardMaterial({ color: 0x1d6356, transparent: true, opacity: 0.56, roughness: 0.4 });
+      MATS.entMid = new THREE.MeshStandardMaterial({ color: 0xb5893e, transparent: true, opacity: 0.52, roughness: 0.4 });
+      MATS.entHigh = new THREE.MeshStandardMaterial({ color: 0xb84a24, transparent: true, opacity: 0.44, roughness: 0.4 });
+      MATS.entZero = new THREE.MeshStandardMaterial({ color: 0xb82929, transparent: true, opacity: 0.8, roughness: 0.3 });
+    }
+
+    // Geometry Builders Helper
+    function addBox(parent, w, h, d, x, y, z, mat, cast = true, receive = true) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      m.position.set(x, y, z);
+      m.castShadow = cast;
+      m.receiveShadow = receive;
+      parent.add(m);
+      return m;
+    }
+
+    function addCyl(parent, rt, rb, h, x, y, z, mat, seg = 10) {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      parent.add(m);
+      return m;
+    }
+
+    function addCypress(parent, x, z, scale = 1) {
+      addCyl(parent, 0.08 * scale, 0.11 * scale, 0.5 * scale, x, 0.28 * scale, z, MATS.wood, 6);
+      addCyl(parent, 0.04 * scale, 0.38 * scale, 1.35 * scale, x, 1.05 * scale, z, MATS.cypressDark, 8);
+      addCyl(parent, 0.02 * scale, 0.25 * scale, 1.0 * scale, x, 1.65 * scale, z, MATS.cypressMid, 8);
+    }
+
+    function addStonePine(parent, x, z, scale = 1) {
+      addCyl(parent, 0.09 * scale, 0.13 * scale, 1.3 * scale, x, 0.65 * scale, z, MATS.wood, 7);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.62 * scale, 0.32 * scale, 0.42 * scale, 10), MATS.cypressMid);
+      crown.position.set(x, 1.42 * scale, z);
+      crown.castShadow = true;
+      parent.add(crown);
+      const top = new THREE.Mesh(new THREE.SphereGeometry(0.46 * scale, 10, 6), MATS.cypressDark);
+      top.scale.set(1.25, 0.48, 1.25);
+      top.position.set(x, 1.56 * scale, z);
+      top.castShadow = true;
+      parent.add(top);
+    }
+
+    function addPitchedRoof(parent, w, h, d, x, y, z, mat = MATS.terracotta, rotateY = 0) {
+      const shape = new THREE.Shape();
+      shape.moveTo(-w / 2, 0);
+      shape.lineTo(0, h);
+      shape.lineTo(w / 2, 0);
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false });
+      geo.translate(0, 0, -d / 2);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.rotation.y = rotateY;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addArchBlock(parent, width, height, depth, archRadius, x, y, z, mat) {
+      const hw = width / 2;
+      const shape = new THREE.Shape();
+      shape.moveTo(-hw, 0);
+      shape.lineTo(-archRadius, 0);
+      shape.absarc(0, height - archRadius - 0.35, archRadius, Math.PI, 0, true);
+      shape.lineTo(hw, 0);
+      shape.lineTo(hw, height);
+      shape.lineTo(-hw, height);
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false, curveSegments: 12 });
+      geo.translate(0, 0, -depth / 2);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addColumn(parent, x, y, z, h = 1.35, r = 0.1) {
+      addBox(parent, r * 2.7, 0.1, r * 2.7, x, y + 0.05, z, MATS.marble);
+      addCyl(parent, r * 0.88, r, h - 0.22, x, y + h / 2, z, MATS.marble, 10);
+      addBox(parent, r * 2.8, 0.12, r * 2.8, x, y + h - 0.06, z, MATS.marble);
+    }
+
+    function addRoadStrip(g, dir) {
+      // dir: 0=N(-Z), 1=E(+X), 2=S(+Z), 3=W(-X) from center to edge
+      if (dir === 0) {
+        addBox(g, 1.75, 0.12, 2.0, 0, 0.06, -1.0, MATS.basalt, false, true);
+        addBox(g, 0.32, 0.18, 2.0, -1.02, 0.09, -1.0, MATS.travertine, true, true);
+        addBox(g, 0.32, 0.18, 2.0, 1.02, 0.09, -1.0, MATS.travertine, true, true);
+      } else if (dir === 2) {
+        addBox(g, 1.75, 0.12, 2.0, 0, 0.06, 1.0, MATS.basalt, false, true);
+        addBox(g, 0.32, 0.18, 2.0, -1.02, 0.09, 1.0, MATS.travertine, true, true);
+        addBox(g, 0.32, 0.18, 2.0, 1.02, 0.09, 1.0, MATS.travertine, true, true);
+      } else if (dir === 1) {
+        addBox(g, 2.0, 0.12, 1.75, 1.0, 0.06, 0, MATS.basalt, false, true);
+        addBox(g, 2.0, 0.18, 0.32, 1.0, 0.09, -1.02, MATS.travertine, true, true);
+        addBox(g, 2.0, 0.18, 0.32, 1.0, 0.09, 1.02, MATS.travertine, true, true);
+      } else if (dir === 3) {
+        addBox(g, 2.0, 0.12, 1.75, -1.0, 0.06, 0, MATS.basalt, false, true);
+        addBox(g, 2.0, 0.18, 0.32, -1.0, 0.09, -1.02, MATS.travertine, true, true);
+        addBox(g, 2.0, 0.18, 0.32, -1.0, 0.09, 1.02, MATS.travertine, true, true);
+      }
+    }
+
+    function addBrazier(g, x, y, z) {
+      addCyl(g, 0.12, 0.08, 0.34, x, y + 0.17, z, MATS.bronze, 8);
+      const fire = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), MATS.brazierFire);
+      fire.position.set(x, y + 0.38, z);
+      g.add(fire);
+    }
+
+    // Build a procedural 3D Roman module Group in local frame ([-2, 2] × [-2, 2], N=-Z, E=+X, S=+Z, W=-X)
+    function buildRomanModuleMesh(moduleId) {
+      const g = new THREE.Group();
+      // Base ground plinth
+      const isForum = moduleId.startsWith('forum');
+      const isGarden = moduleId.startsWith('garden');
+      const baseMat = isForum ? MATS.travertine : isGarden ? MATS.grass : MATS.soil;
+      addBox(g, 3.96, 0.14, 3.96, 0, -0.07, 0, baseMat, false, true);
+
+      switch (moduleId) {
+        case 'road_straight': {
+          addRoadStrip(g, 0);
+          addRoadStrip(g, 2);
+          // Flagstone stepping accents
+          addBox(g, 0.3, 0.15, 0.25, -0.4, 0.08, 0, MATS.basaltLight, false, true);
+          addBox(g, 0.3, 0.15, 0.25, 0.4, 0.08, 0, MATS.basaltLight, false, true);
+          // Milestone + cypress tufts
+          addCyl(g, 0.12, 0.14, 0.65, -1.48, 0.34, -0.9, MATS.travertine, 8);
+          addCypress(g, 1.5, 1.1, 0.72);
+          break;
+        }
+        case 'road_corner': {
+          addRoadStrip(g, 0);
+          addRoadStrip(g, 1);
+          addBox(g, 2.38, 0.12, 2.38, 0.16, 0.06, -0.16, MATS.basalt, false, true);
+          addBox(g, 0.32, 0.18, 2.1, -1.02, 0.09, 0.16, MATS.travertine, true, true);
+          addBox(g, 2.1, 0.18, 0.32, -0.16, 0.09, 1.02, MATS.travertine, true, true);
+          // Corner stone fountain
+          addBox(g, 0.75, 0.42, 0.75, -1.35, 0.21, 1.35, MATS.travertine);
+          addBox(g, 0.52, 0.36, 0.52, -1.35, 0.25, 1.35, MATS.water, false, true);
+          addCypress(g, 1.45, -1.45, 0.75);
+          break;
+        }
+        case 'road_t': {
+          addRoadStrip(g, 0);
+          addRoadStrip(g, 1);
+          addRoadStrip(g, 3);
+          addBox(g, 1.8, 0.12, 1.8, 0, 0.06, 0, MATS.basalt, false, true);
+          addBox(g, 4.0, 0.18, 0.32, 0, 0.09, 1.02, MATS.travertine, true, true);
+          addBrazier(g, -1.25, 0.16, 1.15);
+          addBrazier(g, 1.25, 0.16, 1.15);
+          break;
+        }
+        case 'road_cross': {
+          addRoadStrip(g, 0);
+          addRoadStrip(g, 1);
+          addRoadStrip(g, 2);
+          addRoadStrip(g, 3);
+          addBox(g, 1.85, 0.12, 1.85, 0, 0.06, 0, MATS.basalt, false, true);
+          // Miniature corner tetrapylon pillars
+          [[-1.12, -1.12], [1.12, -1.12], [-1.12, 1.12], [1.12, 1.12]].forEach(([px, pz]) => {
+            addColumn(g, px, 0.14, pz, 1.45, 0.12);
+          });
+          addBrazier(g, 1.38, 0.14, -1.38);
+          break;
+        }
+        case 'road_gate': {
+          addRoadStrip(g, 0);
+          addBox(g, 1.75, 0.12, 1.2, 0, 0.06, 0.4, MATS.basalt, false, true);
+          // Triumphal arch spanning across road
+          addArchBlock(g, 3.2, 2.45, 0.95, 0.95, 0, 0, 0.25, MATS.travertine);
+          addBox(g, 3.45, 0.45, 1.12, 0, 2.6, 0.25, MATS.marble);
+          addBox(g, 0.65, 0.35, 0.45, 0, 3.0, 0.25, MATS.bronze);
+          addCypress(g, -1.5, 1.45, 0.8);
+          addCypress(g, 1.5, 1.45, 0.8);
+          break;
+        }
+        case 'aqua_straight': {
+          // Two arched stone bays running N-S
+          addBox(g, 0.9, 0.24, 3.98, 0, 0.12, 0, MATS.travertine);
+          const arch1 = addArchBlock(g, 2.0, 2.65, 0.86, 0.68, 0, 0.2, -1.0, MATS.travertine);
+          arch1.rotation.y = Math.PI / 2;
+          const arch2 = addArchBlock(g, 2.0, 2.65, 0.86, 0.68, 0, 0.2, 1.0, MATS.travertine);
+          arch2.rotation.y = Math.PI / 2;
+          // Water specus channel on top
+          addBox(g, 0.92, 0.36, 4.0, 0, 3.0, 0, MATS.travertine);
+          addBox(g, 0.5, 0.2, 4.0, 0, 3.16, 0, MATS.water, false, true);
+          addCypress(g, -1.35, -0.9, 0.75);
+          addCypress(g, 1.35, 0.9, 0.75);
+          break;
+        }
+        case 'aqua_overpass': {
+          // Road runs E-W underneath!
+          addRoadStrip(g, 1);
+          addRoadStrip(g, 3);
+          addBox(g, 1.9, 0.12, 1.75, 0, 0.06, 0, MATS.basalt, false, true);
+          // Grand wide arch N-S spanning over road
+          const span = addArchBlock(g, 3.98, 2.85, 0.96, 1.25, 0, 0, 0, MATS.travertine);
+          span.rotation.y = Math.PI / 2;
+          // Specus channel
+          addBox(g, 0.98, 0.4, 4.0, 0, 3.05, 0, MATS.marble);
+          addBox(g, 0.54, 0.2, 4.0, 0, 3.22, 0, MATS.water, false, true);
+          break;
+        }
+        case 'aqua_corner': {
+          // Central massive corner pier + N & E branches
+          addBox(g, 1.15, 2.85, 1.15, 0, 1.42, 0, MATS.travertine);
+          const aN = addArchBlock(g, 1.5, 2.85, 0.86, 0.48, 0, 0, -1.25, MATS.travertine);
+          aN.rotation.y = Math.PI / 2;
+          addArchBlock(g, 1.5, 2.85, 0.86, 0.48, 1.25, 0, 0, MATS.travertine);
+          addBox(g, 0.92, 0.36, 2.45, 0, 3.0, -0.78, MATS.travertine);
+          addBox(g, 2.45, 0.36, 0.92, 0.78, 3.0, 0, MATS.travertine);
+          addBox(g, 0.5, 0.2, 2.25, 0, 3.16, -0.88, MATS.water, false, true);
+          addBox(g, 2.25, 0.2, 0.5, 0.88, 3.16, 0, MATS.water, false, true);
+          addCypress(g, -1.35, 1.35, 0.85);
+          break;
+        }
+        case 'aqua_castellum': {
+          // Road on S, Aqueduct arriving N
+          addRoadStrip(g, 2);
+          const aN = addArchBlock(g, 1.4, 2.85, 0.86, 0.45, 0, 0, -1.3, MATS.travertine);
+          aN.rotation.y = Math.PI / 2;
+          addBox(g, 0.92, 0.36, 1.5, 0, 3.0, -1.25, MATS.travertine);
+          addBox(g, 0.5, 0.2, 1.5, 0, 3.16, -1.25, MATS.water, false, true);
+          // Castellum reservoir tower + fountain pool
+          addBox(g, 2.1, 2.6, 1.45, 0, 1.3, -0.1, MATS.brick);
+          addBox(g, 2.24, 0.25, 1.6, 0, 2.65, -0.1, MATS.travertine);
+          addPitchedRoof(g, 2.25, 0.75, 1.65, 0, 2.77, -0.1, MATS.terracotta);
+          addBox(g, 1.5, 0.45, 0.7, 0, 0.22, 0.72, MATS.marble);
+          addBox(g, 1.2, 0.35, 0.48, 0, 0.32, 0.72, MATS.water, false, true);
+          break;
+        }
+        case 'aqua_spring': {
+          const aN = addArchBlock(g, 1.4, 2.85, 0.86, 0.45, 0, 0, -1.3, MATS.travertine);
+          aN.rotation.y = Math.PI / 2;
+          addBox(g, 0.92, 0.36, 1.5, 0, 3.0, -1.25, MATS.travertine);
+          addBox(g, 0.5, 0.2, 1.5, 0, 3.16, -1.25, MATS.water, false, true);
+          addCyl(g, 0.95, 1.15, 2.85, 0, 1.42, 0.25, MATS.travertine, 12);
+          const dome = new THREE.Mesh(new THREE.SphereGeometry(0.96, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), MATS.terracotta);
+          dome.position.set(0, 2.85, 0.25);
+          dome.castShadow = true;
+          g.add(dome);
+          addCypress(g, -1.4, 1.35, 0.8);
+          addCypress(g, 1.4, 1.35, 0.8);
+          break;
+        }
+        case 'insula_street': {
+          // 4-story Roman tenement facing S (R)
+          addBox(g, 3.35, 2.9, 2.65, 0, 1.45, -0.45, MATS.brick);
+          // Ground floor plaster arcade + shop awning
+          addBox(g, 3.42, 0.85, 2.72, 0, 0.42, -0.45, MATS.stuccoWarm);
+          addBox(g, 3.1, 0.12, 0.6, 0, 0.92, 1.1, MATS.terracottaDark);
+          // Glowing windows
+          [-1.0, 0, 1.0].forEach((wx) => {
+            addBox(g, 0.36, 0.42, 0.08, wx, 1.65, 0.89, MATS.windowGlow, false, false);
+            addBox(g, 0.36, 0.42, 0.08, wx, 2.4, 0.89, MATS.windowGlow, false, false);
+          });
+          addPitchedRoof(g, 2.95, 0.85, 3.5, 0, 2.9, -0.45, MATS.terracotta, Math.PI / 2);
+          // Sidewalk apron facing S
+          addBox(g, 3.96, 0.14, 0.9, 0, 0.07, 1.5, MATS.travertine, false, true);
+          break;
+        }
+        case 'insula_corner': {
+          // L-shaped corner tenement facing E and S
+          addBox(g, 2.75, 2.7, 2.75, -0.42, 1.35, -0.42, MATS.stuccoWarm);
+          addBox(g, 2.8, 0.85, 2.8, -0.42, 0.42, -0.42, MATS.brick);
+          addBox(g, 0.36, 0.42, 0.08, -0.9, 1.55, 0.97, MATS.windowGlow, false, false);
+          addBox(g, 0.36, 0.42, 0.08, 0.15, 1.55, 0.97, MATS.windowGlow, false, false);
+          addBox(g, 0.08, 0.42, 0.36, 0.97, 1.55, -0.8, MATS.windowGlow, false, false);
+          addBox(g, 0.08, 0.42, 0.36, 0.97, 2.25, 0.15, MATS.windowGlow, false, false);
+          addPitchedRoof(g, 2.95, 0.85, 2.95, -0.42, 2.7, -0.42, MATS.terracotta);
+          addBox(g, 3.96, 0.14, 0.85, 0, 0.07, 1.52, MATS.travertine, false, true);
+          addBox(g, 0.85, 0.14, 3.96, 1.52, 0.07, 0, MATS.travertine, false, true);
+          break;
+        }
+        case 'insula_horrea': {
+          // Twin brick granary wings around central cart court
+          addBox(g, 3.3, 1.85, 1.15, 0, 0.92, -1.15, MATS.brick);
+          addBox(g, 3.3, 1.85, 1.15, 0, 0.92, 1.15, MATS.brick);
+          addPitchedRoof(g, 1.3, 0.65, 3.45, 0, 1.85, -1.15, MATS.terracottaDark, Math.PI / 2);
+          addPitchedRoof(g, 1.3, 0.65, 3.45, 0, 1.85, 1.15, MATS.terracottaDark, Math.PI / 2);
+          // Amphora clusters in central court
+          [[-0.8, 0], [-0.4, 0.25], [0.5, -0.2], [0.9, 0.1]].forEach(([ax, az]) => {
+            addCyl(g, 0.12, 0.07, 0.42, ax, 0.21, az, MATS.terracotta, 8);
+          });
+          break;
+        }
+        case 'domus_atrium': {
+          // Outer courtyard wall + 4-wing compluvium roof around open turquoise impluvium
+          addBox(g, 3.55, 1.15, 0.8, 0, 0.58, -1.35, MATS.plaster);
+          addBox(g, 3.55, 1.15, 0.75, 0, 0.58, 0.95, MATS.plaster);
+          addBox(g, 0.8, 1.15, 1.65, -1.38, 0.58, -0.2, MATS.plaster);
+          addBox(g, 0.8, 1.15, 1.65, 1.38, 0.58, -0.2, MATS.plaster);
+          // Pitched terracotta wings surrounding open atrium
+          addBox(g, 3.7, 0.26, 0.95, 0, 1.25, -1.35, MATS.terracotta);
+          addBox(g, 3.7, 0.26, 0.9, 0, 1.25, 0.95, MATS.terracotta);
+          addBox(g, 0.95, 0.26, 1.65, -1.38, 1.25, -0.2, MATS.terracotta);
+          addBox(g, 0.95, 0.26, 1.65, 1.38, 1.25, -0.2, MATS.terracotta);
+          // Sunlit impluvium pool inside courtyard
+          addBox(g, 1.5, 0.16, 1.25, 0, 0.08, -0.2, MATS.marble, false, true);
+          addBox(g, 1.05, 0.18, 0.85, 0, 0.1, -0.2, MATS.water, false, true);
+          // Entrance portal facing S
+          addBox(g, 0.72, 0.85, 0.18, 0, 0.45, 1.35, MATS.wood);
+          addBox(g, 3.96, 0.14, 0.65, 0, 0.07, 1.65, MATS.travertine, false, true);
+          break;
+        }
+        case 'domus_peristyle': {
+          // Colonnaded garden courtyard
+          addBox(g, 3.4, 0.22, 3.4, 0, 0.11, 0, MATS.travertine, false, true);
+          addBox(g, 1.8, 0.24, 1.8, 0, 0.13, 0, MATS.grass, false, true);
+          addCyl(g, 0.45, 0.45, 0.26, 0, 0.24, 0, MATS.marble, 12);
+          addCyl(g, 0.36, 0.36, 0.28, 0, 0.25, 0, MATS.water, 12);
+          [[-1.35, -1.35], [0, -1.35], [1.35, -1.35], [-1.35, 1.35], [0, 1.35], [1.35, 1.35], [-1.35, 0], [1.35, 0]].forEach(([cx, cz]) => {
+            addColumn(g, cx, 0.22, cz, 1.15, 0.08);
+          });
+          // Perimeter terracotta eaves
+          addBox(g, 3.65, 0.22, 0.75, 0, 1.45, -1.35, MATS.terracotta);
+          addBox(g, 3.65, 0.22, 0.75, 0, 1.45, 1.35, MATS.terracotta);
+          addBox(g, 0.75, 0.22, 2.0, -1.35, 1.45, 0, MATS.terracotta);
+          addBox(g, 0.75, 0.22, 2.0, 1.35, 1.45, 0, MATS.terracotta);
+          break;
+        }
+        case 'forum_plaza': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          // Stepped monument pedestal + bronze statue
+          addBox(g, 1.35, 0.2, 1.35, 0, 0.25, 0, MATS.travertine);
+          addBox(g, 0.85, 0.75, 0.85, 0, 0.72, 0, MATS.marble);
+          addCyl(g, 0.24, 0.28, 0.9, 0, 1.5, 0, MATS.bronze, 10);
+          addBrazier(g, -1.1, 0.2, -1.1);
+          addBrazier(g, 1.1, 0.2, 1.1);
+          break;
+        }
+        case 'forum_colonnade': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          [-1.35, -0.45, 0.45, 1.35].forEach((cx) => {
+            addColumn(g, cx, 0.2, 1.25, 1.75, 0.11);
+          });
+          addBox(g, 3.7, 0.28, 0.6, 0, 2.08, 1.25, MATS.marble);
+          addPitchedRoof(g, 0.85, 0.45, 3.8, 0, 2.22, 1.25, MATS.terracotta, Math.PI / 2);
+          break;
+        }
+        case 'forum_edge': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          addBox(g, 3.96, 1.9, 0.35, 0, 1.05, -1.6, MATS.travertine);
+          [-1.35, -0.45, 0.45, 1.35].forEach((cx) => {
+            addColumn(g, cx, 0.2, -0.85, 1.75, 0.11);
+          });
+          addBox(g, 3.96, 0.28, 1.15, 0, 2.08, -1.22, MATS.marble);
+          addPitchedRoof(g, 1.3, 0.55, 3.98, 0, 2.22, -1.22, MATS.terracotta, Math.PI / 2);
+          break;
+        }
+        case 'forum_corner': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          addBox(g, 3.96, 1.9, 0.35, 0, 1.05, -1.6, MATS.travertine);
+          addBox(g, 0.35, 1.9, 3.96, -1.6, 1.05, 0, MATS.travertine);
+          [[-0.85, -0.85], [0.25, -0.85], [1.35, -0.85], [-0.85, 0.25], [-0.85, 1.35]].forEach(([cx, cz]) => {
+            addColumn(g, cx, 0.2, cz, 1.75, 0.11);
+          });
+          addBox(g, 3.96, 0.28, 1.15, 0, 2.08, -1.22, MATS.marble);
+          addBox(g, 1.15, 0.28, 3.96, -1.22, 2.08, 0, MATS.marble);
+          addPitchedRoof(g, 1.3, 0.55, 3.98, 0, 2.22, -1.22, MATS.terracotta, Math.PI / 2);
+          addPitchedRoof(g, 1.3, 0.55, 3.98, -1.22, 2.22, 0, MATS.terracotta, 0);
+          break;
+        }
+        case 'forum_temple': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          // Stepped Capitoline podium
+          addBox(g, 2.85, 0.55, 3.15, 0, 0.45, -0.25, MATS.travertine);
+          // Front steps facing Forum (S)
+          addBox(g, 2.4, 0.25, 0.65, 0, 0.28, 1.45, MATS.marble);
+          // Cella sanctuary
+          addBox(g, 2.15, 1.8, 1.85, 0, 1.62, -0.65, MATS.plaster);
+          // Hexastyle front columns
+          [-1.02, -0.34, 0.34, 1.02].forEach((cx) => {
+            addColumn(g, cx, 0.72, 0.95, 1.85, 0.11);
+          });
+          // Entablature & classical pediment
+          addBox(g, 2.65, 0.26, 2.95, 0, 2.68, -0.2, MATS.marble);
+          addPitchedRoof(g, 2.75, 0.88, 3.05, 0, 2.8, -0.2, MATS.terracotta);
+          addBrazier(g, 0, 0.2, 1.72);
+          break;
+        }
+        case 'forum_passage': {
+          addBox(g, 3.96, 0.2, 3.96, 0, 0.1, 0, MATS.marble, false, true);
+          [-1.1, 0, 1.1].forEach((cz) => {
+            addColumn(g, -1.15, 0.2, cz, 1.75, 0.11);
+            addColumn(g, 1.15, 0.2, cz, 1.75, 0.11);
+          });
+          addBox(g, 2.75, 0.28, 3.96, 0, 2.08, 0, MATS.marble);
+          addPitchedRoof(g, 2.85, 0.72, 3.98, 0, 2.22, 0, MATS.terracotta);
+          break;
+        }
+        case 'garden_cypress': {
+          addBox(g, 3.45, 0.12, 0.55, 0, 0.06, 0, MATS.soil, false, true);
+          addBox(g, 0.55, 0.12, 3.45, 0, 0.06, 0, MATS.soil, false, true);
+          addCypress(g, -1.25, -1.25, 1.15);
+          addCypress(g, 1.25, -1.15, 0.95);
+          addCypress(g, -1.15, 1.2, 1.0);
+          addStonePine(g, 1.15, 1.15, 1.05);
+          addBox(g, 0.8, 0.25, 0.35, 0, 0.15, 0.65, MATS.marble);
+          break;
+        }
+        case 'garden_nymphaeum': {
+          addBox(g, 3.96, 0.14, 0.65, 0, 0.07, 1.62, MATS.travertine, false, true);
+          addCyl(g, 1.15, 1.25, 0.38, 0, 0.22, 0.2, MATS.marble, 14);
+          addCyl(g, 0.92, 0.92, 0.42, 0, 0.23, 0.2, MATS.water, 14);
+          addCypress(g, -1.35, -1.15, 1.1);
+          addCypress(g, 1.35, -1.15, 1.1);
+          addStonePine(g, 0, -1.25, 1.0);
+          break;
+        }
+        case 'garden_pergola': {
+          // Timber pergola beams
+          [[-1.0, -0.8], [1.0, -0.8], [-1.0, 0.8], [1.0, 0.8]].forEach(([px, pz]) => {
+            addCyl(g, 0.08, 0.09, 1.45, px, 0.72, pz, MATS.wood, 6);
+          });
+          addBox(g, 2.35, 0.12, 0.14, 0, 1.48, -0.8, MATS.wood);
+          addBox(g, 2.35, 0.12, 0.14, 0, 1.48, 0.8, MATS.wood);
+          [-0.9, -0.3, 0.3, 0.9].forEach((bx) => {
+            addBox(g, 0.1, 0.1, 1.9, bx, 1.56, 0, MATS.wood);
+          });
+          addCypress(g, -1.45, -1.35, 1.05);
+          addCypress(g, 1.45, 1.35, 0.95);
+          addCyl(g, 0.12, 0.08, 0.44, -0.35, 0.22, 0.2, MATS.terracotta, 8);
+          addCyl(g, 0.12, 0.08, 0.44, 0.35, 0.22, -0.2, MATS.terracotta, 8);
+          break;
+        }
+      }
+      return g;
+    }
+
+    // Cache module prototypes to clone cleanly
+    const MODULE_PROTOTYPES = {};
+    function getModuleClone(moduleId, rot) {
+      if (!MODULE_PROTOTYPES[moduleId]) {
+        MODULE_PROTOTYPES[moduleId] = buildRomanModuleMesh(moduleId);
+      }
+      const clone = MODULE_PROTOTYPES[moduleId].clone();
+      // Rotate clockwise around Y: rot=1 -> -PI/2 so +Z faces +X? Wait:
+      // Let's verify: Original N=-Z, E=+X, S=+Z, W=-X.
+      // After 1 CW turn (looking down from +Y): original N (-Z) moves to E (+X).
+      // In Three.js right-handed Y-up: rotation.y = -Math.PI / 2 maps (0,0,-1) to (+1,0,0)!
+      clone.rotation.y = -rot * (Math.PI / 2);
+      return clone;
+    }
+
+    function initThreeJS() {
+      const canvas = document.getElementById('three-canvas');
+      const shell = document.getElementById('viewport-shell');
+      if (!canvas || !shell || typeof THREE === 'undefined') {
+        useWebGL = false;
+        return;
+      }
+
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
+      } catch (e) {
+        useWebGL = false;
+        return;
+      }
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf3e9dc);
+
+      const w = shell.clientWidth || 720;
+      const h = shell.clientHeight || 540;
+      const aspect = w / h;
+      const frustum = 22;
+      orthoCamera = new THREE.OrthographicCamera(
+        (-frustum * aspect) / 2,
+        (frustum * aspect) / 2,
+        frustum / 2,
+        -frustum / 2,
+        -120,
+        240
+      );
+
+      ambientLight = new THREE.AmbientLight(0xfff1dc, 0.65);
+      scene.add(ambientLight);
+
+      hemiLight = new THREE.HemisphereLight(0xfff5e4, 0xb89674, 0.6);
+      scene.add(hemiLight);
+
+      sunLight = new THREE.DirectionalLight(0xfff0d6, 1.55);
+      sunLight.position.set(24, 34, 18);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = 2048;
+      sunLight.shadow.mapSize.height = 2048;
+      sunLight.shadow.camera.near = 2;
+      sunLight.shadow.camera.far = 110;
+      const d = 32;
+      sunLight.shadow.camera.left = -d;
+      sunLight.shadow.camera.right = d;
+      sunLight.shadow.camera.top = d;
+      sunLight.shadow.camera.bottom = -d;
+      sunLight.shadow.bias = -0.0005;
+      scene.add(sunLight);
+
+      initMaterials();
+
+      cityGroup = new THREE.Group();
+      entropyGroup = new THREE.Group();
+      socketGroup = new THREE.Group();
+      museumGroup = new THREE.Group();
+      museumGroup.visible = false;
+
+      scene.add(cityGroup);
+      scene.add(entropyGroup);
+      scene.add(socketGroup);
+      scene.add(museumGroup);
+
+      // Selection reticle
+      const ringGeo = new THREE.RingGeometry(1.65, 1.94, 4);
+      ringGeo.rotateZ(Math.PI / 4);
+      ringGeo.rotateX(-Math.PI / 2);
+      highlightMesh = new THREE.Mesh(
+        ringGeo,
+        new THREE.MeshBasicMaterial({ color: 0xb84a24, side: THREE.DoubleSide })
+      );
+      highlightMesh.position.y = 0.18;
+      scene.add(highlightMesh);
+
+      raycaster = new THREE.Raycaster();
+      pointerNDC = new THREE.Vector2();
+
+      buildMuseumScene();
+      applyLightingToThree(appState.lighting);
+      handleResize();
+    }
+
+    function buildMuseumScene() {
+      if (!useWebGL || !museumGroup) return;
+      while (museumGroup.children.length > 0) museumGroup.remove(museumGroup.children[0]);
+
+      const cols = 6;
+      const spacing = 5.4;
+      const rows = Math.ceil(BASE_MODULES.length / cols);
+      const offsetX = ((cols - 1) * spacing) / 2;
+      const offsetZ = ((rows - 1) * spacing) / 2;
+
+      // Gallery slab
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(cols * spacing + 4, 0.3, rows * spacing + 4),
+        MATS.travertine
+      );
+      slab.position.set(0, -0.35, 0);
+      slab.receiveShadow = true;
+      museumGroup.add(slab);
+
+      BASE_MODULES.forEach((mod, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const px = col * spacing - offsetX;
+        const pz = row * spacing - offsetZ;
+
+        const pedestal = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.22, 4.2), MATS.plaster);
+        pedestal.position.set(px, -0.1, pz);
+        pedestal.receiveShadow = true;
+        museumGroup.add(pedestal);
+
+        const mesh = getModuleClone(mod.id, 0);
+        mesh.position.set(px, 0.02, pz);
+        mesh.userData = { museumIndex: idx, moduleId: mod.id };
+        museumGroup.add(mesh);
+
+        // Add tiny socket color pins on the 4 sides of each pedestal
+        mod.sockets.forEach((sock, dir) => {
+          const d = DIRS[dir];
+          const color = sock === 'R' ? 0x56504b : sock === 'A' ? 0x1d6356 : sock === 'F' ? 0xb5893e : 0xb84a24;
+          const pin = new THREE.Mesh(
+            new THREE.SphereGeometry(0.18, 8, 8),
+            new THREE.MeshBasicMaterial({ color })
+          );
+          pin.position.set(px + d.dx * 2.15, 0.22, pz + d.dz * 2.15);
+          museumGroup.add(pin);
+        });
+      });
+    }
+
+    function cellWorldPos(x, z) {
+      const half = ((solver.size - 1) * TILE_SIZE) / 2;
+      return {
+        wx: x * TILE_SIZE - half,
+        wz: z * TILE_SIZE - half
+      };
+    }
+
+    function rebuildSceneFromSolver(rebuildAll = true) {
+      if (!useWebGL || !cityGroup) return;
+      if (rebuildAll) {
+        while (cityGroup.children.length > 0) cityGroup.remove(cityGroup.children[0]);
+        while (entropyGroup.children.length > 0) entropyGroup.remove(entropyGroup.children[0]);
+        while (socketGroup.children.length > 0) socketGroup.remove(socketGroup.children[0]);
+        cellGroups = [];
+
+        // Ground foundation board
+        const boardSize = solver.size * TILE_SIZE + 1.4;
+        const board = new THREE.Mesh(
+          new THREE.BoxGeometry(boardSize, 0.45, boardSize),
+          MATS.travertine
+        );
+        board.position.set(0, -0.38, 0);
+        board.receiveShadow = true;
+        cityGroup.add(board);
+
+        const gridLines = new THREE.GridHelper(solver.size * TILE_SIZE, solver.size, 0x9e8a78, 0xdfd0be);
+        gridLines.position.y = 0.01;
+        cityGroup.add(gridLines);
+
+        for (const cell of solver.cells) {
+          const { wx, wz } = cellWorldPos(cell.x, cell.z);
+
+          const tileHolder = new THREE.Group();
+          tileHolder.position.set(wx, 0, wz);
+          tileHolder.userData = { cellX: cell.x, cellZ: cell.z };
+          cityGroup.add(tileHolder);
+
+          // Entropy prism placeholder
+          const prism = new THREE.Mesh(new THREE.BoxGeometry(3.35, 1, 3.35), MATS.entHigh);
+          prism.position.set(wx, 0.5, wz);
+          entropyGroup.add(prism);
+
+          // Socket pin group
+          const sPinGroup = new THREE.Group();
+          sPinGroup.position.set(wx, 0.35, wz);
+          socketGroup.add(sPinGroup);
+
+          cellGroups.push({ tileHolder, prism, sPinGroup });
+          updateCellMesh(cell);
+        }
+      } else {
+        for (const cell of solver.cells) {
+          updateCellMesh(cell);
+        }
+      }
+      updateSelectionReticle();
+    }
+
+    function updateCellMesh(cell) {
+      if (!useWebGL) return;
+      const idx = cell.z * solver.size + cell.x;
+      const entry = cellGroups[idx];
+      if (!entry) return;
+
+      const { tileHolder, prism, sPinGroup } = entry;
+      while (tileHolder.children.length > 0) tileHolder.remove(tileHolder.children[0]);
+      while (sPinGroup.children.length > 0) sPinGroup.remove(sPinGroup.children[0]);
+
+      if (cell.collapsed >= 0) {
+        const v = VARIANTS[cell.collapsed];
+        const mesh = getModuleClone(v.moduleId, v.rot);
+        tileHolder.add(mesh);
+        tileHolder.scale.set(1, Math.max(0.05, cell.animT || 1), 1);
+        prism.visible = false;
+
+        // Socket pins for collapsed cell
+        v.sockets.forEach((sock, dir) => {
+          const d = DIRS[dir];
+          const color = sock === 'R' ? 0x56504b : sock === 'A' ? 0x1d6356 : sock === 'F' ? 0xb5893e : 0xb84a24;
+          const pin = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.32), new THREE.MeshBasicMaterial({ color }));
+          pin.position.set(d.dx * 1.88, 0.1, d.dz * 1.88);
+          sPinGroup.add(pin);
+        });
+      } else {
+        tileHolder.scale.set(1, 1, 1);
+        // Show entropy prism scaled by remaining entropy
+        prism.visible = appState.showEntropyHeat && appState.mode !== 'museum';
+        if (cell.count === 0) {
+          prism.material = MATS.entZero;
+          prism.scale.set(1, 1.4, 1);
+          prism.position.y = 0.7;
+        } else {
+          const norm = Math.min(1, cell.entropy / solver.maxEntropy);
+          prism.material = cell.count <= 4 ? MATS.entLow : norm < 0.62 ? MATS.entMid : MATS.entHigh;
+          const h = 0.25 + norm * 2.1;
+          prism.scale.set(1, h, 1);
+          prism.position.y = h / 2;
+        }
+      }
+    }
+
+    function updateSelectionReticle() {
+      if (!useWebGL || !highlightMesh) return;
+      if (appState.mode === 'museum') {
+        highlightMesh.visible = false;
+        return;
+      }
+      highlightMesh.visible = true;
+      const { wx, wz } = cellWorldPos(appState.selectedCell.x, appState.selectedCell.z);
+      highlightMesh.position.set(wx, 0.22, wz);
+    }
+
+    function applyLightingToThree(preset) {
+      if (!useWebGL || !scene) return;
+      if (preset === 'meridies') {
+        scene.background.setHex(0xf3e9dc);
+        sunLight.color.setHex(0xfff0d6);
+        sunLight.intensity = 1.55;
+        sunLight.position.set(24, 34, 18);
+        hemiLight.color.setHex(0xfff5e4);
+        hemiLight.groundColor.setHex(0xb89674);
+        hemiLight.intensity = 0.62;
+        ambientLight.intensity = 0.62;
+        MATS.windowGlow.emissiveIntensity = 0.08;
+        MATS.brazierFire.emissiveIntensity = 0.6;
+      } else if (preset === 'vespera') {
+        scene.background.setHex(0xdec0a4);
+        sunLight.color.setHex(0xff9f59);
+        sunLight.intensity = 1.45;
+        sunLight.position.set(32, 16, -16);
+        hemiLight.color.setHex(0xffc99e);
+        hemiLight.groundColor.setHex(0x6b4b3e);
+        hemiLight.intensity = 0.52;
+        ambientLight.intensity = 0.48;
+        MATS.windowGlow.emissiveIntensity = 0.75;
+        MATS.brazierFire.emissiveIntensity = 1.35;
+      } else if (preset === 'nox') {
+        scene.background.setHex(0x211916);
+        sunLight.color.setHex(0x88a8d8);
+        sunLight.intensity = 0.62;
+        sunLight.position.set(-18, 28, -22);
+        hemiLight.color.setHex(0x465878);
+        hemiLight.groundColor.setHex(0x1c1411);
+        hemiLight.intensity = 0.45;
+        ambientLight.intensity = 0.35;
+        MATS.windowGlow.emissiveIntensity = 1.55;
+        MATS.brazierFire.emissiveIntensity = 1.9;
+      }
+    }
+
+    function updateCameraTransform() {
+      if (!useWebGL || !orthoCamera) return;
+      const dist = 56;
+      const cx = camState.targetX + dist * Math.cos(camState.elevation) * Math.sin(camState.azimuth);
+      const cy = dist * Math.sin(camState.elevation);
+      const cz = camState.targetZ + dist * Math.cos(camState.elevation) * Math.cos(camState.azimuth);
+      orthoCamera.position.set(cx, cy, cz);
+      orthoCamera.lookAt(camState.targetX, 0.8, camState.targetZ);
+      orthoCamera.zoom = camState.zoom;
+      orthoCamera.updateProjectionMatrix();
+    }
+
+    function handleResize() {
+      const shell = document.getElementById('viewport-shell');
+      const threeCanvas = document.getElementById('three-canvas');
+      const hudCanvas = document.getElementById('hud-canvas');
+      if (!shell || !threeCanvas || !hudCanvas) return;
+
+      const w = shell.clientWidth || 720;
+      const h = shell.clientHeight || 540;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      hudCanvas.width = Math.floor(w * dpr);
+      hudCanvas.height = Math.floor(h * dpr);
+
+      if (useWebGL && renderer && orthoCamera) {
+        renderer.setSize(w, h, false);
+        const aspect = w / h;
+        const frustum = appState.mode === 'museum' ? 30 : Math.max(18, solver.size * 3.15);
+        orthoCamera.left = (-frustum * aspect) / 2;
+        orthoCamera.right = (frustum * aspect) / 2;
+        orthoCamera.top = frustum / 2;
+        orthoCamera.bottom = -frustum / 2;
+        orthoCamera.updateProjectionMatrix();
+      } else {
+        threeCanvas.width = Math.floor(w * dpr);
+        threeCanvas.height = Math.floor(h * dpr);
+      }
+    }
+
+    // Project 3D world point to 2D CSS pixel coordinates
+    function projectToScreen(wx, wy, wz, w, h) {
+      if (useWebGL && orthoCamera) {
+        const v = new THREE.Vector3(wx, wy, wz);
+        v.project(orthoCamera);
+        return {
+          x: (v.x * 0.5 + 0.5) * w,
+          y: (-v.y * 0.5 + 0.5) * h
+        };
+      }
+      // Fallback 2D isometric projection
+      const dx = wx - camState.targetX;
+      const dz = wz - camState.targetZ;
+      const cosA = Math.cos(camState.azimuth);
+      const sinA = Math.sin(camState.azimuth);
+      const rx = dx * cosA - dz * sinA;
+      const rz = dx * sinA + dz * cosA;
+      const scale = 14 * camState.zoom;
+      const tilt = Math.sin(camState.elevation);
+      return {
+        x: w / 2 + rx * scale,
+        y: h / 2 + rz * scale * tilt - wy * scale * Math.cos(camState.elevation)
+      };
+    }
+
+    // Draw crisp 2D HUD overlay (Entropy numbers, lowest-entropy target ring, fallback 2D renderer if WebGL absent)
+    function drawHUDOverlay() {
+      const hudCanvas = document.getElementById('hud-canvas');
+      const shell = document.getElementById('viewport-shell');
+      if (!hudCanvas || !shell) return;
+      const ctx = hudCanvas.getContext('2d');
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = shell.clientWidth || 720;
+      const h = shell.clientHeight || 540;
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      // If WebGL isn't available, render full 2D isometric Roman city directly on three-canvas
+      if (!useWebGL) {
+        drawFallback2DCity(w, h, dpr);
+      }
+
+      if (appState.mode === 'museum') {
+        // Draw module labels in museum mode
+        const cols = 6;
+        const spacing = 5.4;
+        const rows = Math.ceil(BASE_MODULES.length / cols);
+        const offsetX = ((cols - 1) * spacing) / 2;
+        const offsetZ = ((rows - 1) * spacing) / 2;
+        ctx.font = '600 10px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        BASE_MODULES.forEach((mod, idx) => {
+          const px = (idx % cols) * spacing - offsetX;
+          const pz = Math.floor(idx / cols) * spacing - offsetZ;
+          const pt = projectToScreen(px, 0.2, pz + 2.35, w, h);
+          ctx.fillStyle = 'rgba(249,243,235,0.88)';
+          const tw = ctx.measureText(mod.name).width + 10;
+          ctx.fillRect(pt.x - tw / 2, pt.y - 8, tw, 15);
+          ctx.fillStyle = '#261b15';
+          ctx.fillText(mod.name, pt.x, pt.y + 3);
+        });
+        ctx.restore();
+        return;
+      }
+
+      // Identify lowest-entropy target cell for highlight reticle
+      const nextMRV = pickNextMRVCell();
+
+      if (appState.showEntropyNums) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const cell of solver.cells) {
+          if (cell.collapsed >= 0) continue;
+          const { wx, wz } = cellWorldPos(cell.x, cell.z);
+          const norm = Math.min(1, cell.entropy / solver.maxEntropy);
+          const yOff = appState.showEntropyHeat ? 0.35 + norm * 2.1 : 0.35;
+          const pt = projectToScreen(wx, yOff, wz, w, h);
+
+          const isTarget = nextMRV && nextMRV.x === cell.x && nextMRV.z === cell.z;
+          const bg = cell.count === 0 ? '#b82929' : isTarget ? '#13473d' : cell.count <= 4 ? '#1d6356' : 'rgba(38,27,21,0.78)';
+
+          ctx.fillStyle = bg;
+          ctx.beginPath();
+          ctx.roundRect(pt.x - 14, pt.y - 10, 28, 20, 6);
+          ctx.fill();
+
+          if (isTarget) {
+            ctx.strokeStyle = '#f7ebe0';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '600 11px "IBM Plex Mono", monospace';
+          ctx.fillText(String(cell.count), pt.x, pt.y);
+        }
+      }
+
+      // Draw hover outline if hovered
+      if (appState.hoveredCell) {
+        const { wx, wz } = cellWorldPos(appState.hoveredCell.x, appState.hoveredCell.z);
+        const corners = [
+          projectToScreen(wx - 1.9, 0.25, wz - 1.9, w, h),
+          projectToScreen(wx + 1.9, 0.25, wz - 1.9, w, h),
+          projectToScreen(wx + 1.9, 0.25, wz + 1.9, w, h),
+          projectToScreen(wx - 1.9, 0.25, wz + 1.9, w, h)
+        ];
+        ctx.strokeStyle = appState.mode === 'build' ? '#1d6356' : '#b84a24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        corners.slice(1).forEach((c) => ctx.lineTo(c.x, c.y));
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawFallback2DCity(w, h, dpr) {
+      const canvas = document.getElementById('three-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = appState.lighting === 'nox' ? '#211916' : appState.lighting === 'vespera' ? '#dec0a4' : '#f3e9dc';
+      ctx.fillRect(0, 0, w, h);
+
+      // Sort cells back-to-front by screen Y
+      const sorted = solver.cells.map((c) => {
+        const { wx, wz } = cellWorldPos(c.x, c.z);
+        const p = projectToScreen(wx, 0, wz, w, h);
+        return { c, wx, wz, depth: p.y };
+      }).sort((a, b) => a.depth - b.depth);
+
+      for (const item of sorted) {
+        const { c, wx, wz } = item;
+        const pts = [
+          projectToScreen(wx - 1.95, 0, wz - 1.95, w, h),
+          projectToScreen(wx + 1.95, 0, wz - 1.95, w, h),
+          projectToScreen(wx + 1.95, 0, wz + 1.95, w, h),
+          projectToScreen(wx - 1.95, 0, wz + 1.95, w, h)
+        ];
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        pts.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+
+        if (c.collapsed >= 0) {
+          const v = VARIANTS[c.collapsed];
+          const fillMap = {
+            roads: '#56504b',
+            aqueducts: '#288c80',
+            insulae: '#c26a4a',
+            domus: '#e6cbb1',
+            forums: '#f7f2e9',
+            gardens: '#2b6349'
+          };
+          ctx.fillStyle = fillMap[v.family] || '#dfd0be';
+        } else {
+          const norm = Math.min(1, c.entropy / solver.maxEntropy);
+          ctx.fillStyle = c.count === 0 ? '#b82929' : c.count <= 4 ? '#1d6356' : norm < 0.62 ? '#b5893e' : '#b84a24';
+        }
+        ctx.fill();
+        ctx.strokeStyle = '#dfd0be';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 5. POINTER PICKING & INTERACTION
+    // =========================================================================
+    function pickCellAtPointer(clientX, clientY) {
+      const shell = document.getElementById('viewport-shell');
+      if (!shell) return null;
+      const rect = shell.getBoundingClientRect();
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+
+      if (useWebGL && orthoCamera && raycaster) {
+        pointerNDC.x = (sx / rect.width) * 2 - 1;
+        pointerNDC.y = -(sy / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointerNDC, orthoCamera);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const hit = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, hit)) {
+          const half = (solver.size * TILE_SIZE) / 2;
+          const gx = Math.floor((hit.x + half) / TILE_SIZE);
+          const gz = Math.floor((hit.z + half) / TILE_SIZE);
+          if (gx >= 0 && gx < solver.size && gz >= 0 && gz < solver.size) {
+            return { x: gx, z: gz };
+          }
+        }
+        return null;
+      }
+
+      // Fallback closest cell
+      let best = null;
+      let bestDist = 42;
+      for (const c of solver.cells) {
+        const { wx, wz } = cellWorldPos(c.x, c.z);
+        const p = projectToScreen(wx, 0, wz, rect.width, rect.height);
+        const d = Math.hypot(p.x - sx, p.y - sy);
+        if (d < bestDist) {
+          bestDist = d;
+          best = { x: c.x, z: c.z };
+        }
+      }
+      return best;
+    }
+
+    function setupViewportListeners() {
+      const canvas = document.getElementById('three-canvas');
+      if (!canvas) return;
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      canvas.addEventListener('pointerdown', (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        camState.dragging = true;
+        camState.lastX = e.clientX;
+        camState.lastY = e.clientY;
+        camState.downX = e.clientX;
+        camState.downY = e.clientY;
+        camState.dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (camState.dragging) {
+          const dx = e.clientX - camState.lastX;
+          const dy = e.clientY - camState.lastY;
+          camState.lastX = e.clientX;
+          camState.lastY = e.clientY;
+
+          if (camState.dragMode === 'orbit') {
+            camState.azimuth -= dx * 0.008;
+            camState.elevation = Math.max(0.28, Math.min(1.48, camState.elevation + dy * 0.007));
+          } else {
+            const panScale = 0.045 / camState.zoom;
+            const cosA = Math.cos(camState.azimuth);
+            const sinA = Math.sin(camState.azimuth);
+            camState.targetX -= (dx * cosA + dy * sinA) * panScale;
+            camState.targetZ -= (-dx * sinA + dy * cosA) * panScale;
+          }
+          updateCameraTransform();
+          return;
+        }
+
+        const picked = pickCellAtPointer(e.clientX, e.clientY);
+        appState.hoveredCell = picked;
+        const readout = document.getElementById('hover-coords');
+        if (readout) {
+          if (picked) {
+            const c = getCell(picked.x, picked.z);
+            if (c && c.collapsed >= 0) {
+              readout.textContent = `(${picked.x},${picked.z}) · ${VARIANTS[c.collapsed].name}`;
+            } else if (c) {
+              readout.textContent = `(${picked.x},${picked.z}) · ${c.count} opts · H=${c.entropy.toFixed(2)}`;
+            }
+          } else {
+            readout.textContent = `Cell —`;
+          }
+        }
+      });
+
+      canvas.addEventListener('pointerup', (e) => {
+        const moved = Math.hypot(e.clientX - camState.downX, e.clientY - camState.downY);
+        camState.dragging = false;
+
+        if (moved < 6 && appState.mode !== 'museum') {
+          const picked = pickCellAtPointer(e.clientX, e.clientY);
+          if (picked) {
+            if (e.button === 2 && appState.mode === 'build') {
+              removePinAt(picked.x, picked.z);
+            } else {
+              handleCellClick(picked.x, picked.z, e.shiftKey);
+            }
+          }
+        }
+      });
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 0.91 : 1.09;
+        camState.zoom = Math.max(0.45, Math.min(2.8, camState.zoom * factor));
+        updateCameraTransform();
+      }, { passive: false });
+
+      window.addEventListener('keydown', (e) => {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) return;
+        const k = e.key.toLowerCase();
+        keysDown.add(k);
+        if (k === 'q') orbitStep(-1);
+        else if (k === 'e') orbitStep(1);
+        else if (k === 'r' && appState.mode === 'build') rotateBuildBrush();
+        else if (k === ' ' && appState.mode !== 'museum') {
+          e.preventDefault();
+          togglePlaySolve();
+        }
+      });
+      window.addEventListener('keyup', (e) => keysDown.delete(e.key.toLowerCase()));
+      window.addEventListener('resize', handleResize);
+    }
+
+    function handleCellClick(x, z, isShift) {
+      appState.selectedCell = { x, z };
+      updateSelectionReticle();
+
+      if (appState.mode === 'build') {
+        if (isShift) {
+          removePinAt(x, z);
+          return;
+        }
+        placeBuildModuleAt(x, z);
+      } else {
+        updateInspectorUI();
+        updateMinimapUI();
+      }
+    }
+
+    // =========================================================================
+    // 6. BUILD MODE & PINNING LOGIC
+    // =========================================================================
+    function findBestVariantForCell(x, z, moduleId, desiredRot) {
+      const cell = getCell(x, z);
+      if (!cell) return -1;
+
+      // Gather neighbor socket constraints from already-collapsed neighbors
+      const req = [null, null, null, null];
+      for (let d = 0; d < 4; d++) {
+        const nb = getCell(x + DIRS[d].dx, z + DIRS[d].dz);
+        if (nb && nb.collapsed >= 0) {
+          req[d] = VARIANTS[nb.collapsed].sockets[DIRS[d].opp];
+        } else if (!nb && appState.borderMode === 'closed') {
+          req[d] = 'U';
+        }
+      }
+
+      const pool = VARIANTS.filter((v) => {
+        if (moduleId !== 'auto' && v.moduleId !== moduleId) return false;
+        for (let d = 0; d < 4; d++) {
+          if (req[d] && v.sockets[d] !== req[d]) return false;
+        }
+        return true;
+      });
+
+      if (pool.length === 0) {
+        // Fallback: ignore neighbor constraints if user explicitly picks a module
+        if (moduleId !== 'auto') {
+          const matchRot = VARIANTS.find((v) => v.moduleId === moduleId && v.rot === desiredRot);
+          return matchRot ? matchRot.index : VARIANTS.find((v) => v.moduleId === moduleId).index;
+        }
+        return -1;
+      }
+
+      if (moduleId !== 'auto') {
+        const exact = pool.find((v) => v.rot === desiredRot);
+        return exact ? exact.index : pool[0].index;
+      }
+
+      // Auto-Fit picks weighted fit prioritizing roads/forums when adjacent
+      pool.sort((a, b) => b.weight - a.weight);
+      return pool[0].index;
+    }
+
+    function placeBuildModuleAt(x, z) {
+      const vIdx = findBestVariantForCell(x, z, appState.brushModuleId, appState.brushRot);
+      if (vIdx < 0) {
+        addSolverLog(`No auto-fit module matches neighbors at (${x},${z}).`, true);
+        updateSolveLogUI();
+        return;
+      }
+
+      appState.pinnedCells = appState.pinnedCells.filter((p) => !(p.x === x && p.z === z));
+      appState.pinnedCells.push({ x, z, variantIndex: vIdx });
+      initSolver(true);
+      persistState();
+    }
+
+    function removePinAt(x, z) {
+      const before = appState.pinnedCells.length;
+      appState.pinnedCells = appState.pinnedCells.filter((p) => !(p.x === x && p.z === z));
+      if (appState.pinnedCells.length !== before) {
+        initSolver(true);
+        persistState();
+      }
+    }
+
+    // =========================================================================
+    // 7. ANIMATION LOOP & TIMED SOLVE STEPPER
+    // =========================================================================
+    let lastFrameTime = performance.now();
+    let stepAccumulator = 0;
+
+    function mainLoop(now) {
+      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      // Keyboard smooth pan
+      const panSpeed = (14 / camState.zoom) * dt;
+      const cosA = Math.cos(camState.azimuth);
+      const sinA = Math.sin(camState.azimuth);
+      let moved = false;
+      if (keysDown.has('w') || keysDown.has('arrowup')) {
+        camState.targetX -= sinA * panSpeed;
+        camState.targetZ -= cosA * panSpeed;
+        moved = true;
+      }
+      if (keysDown.has('s') || keysDown.has('arrowdown')) {
+        camState.targetX += sinA * panSpeed;
+        camState.targetZ += cosA * panSpeed;
+        moved = true;
+      }
+      if (keysDown.has('a') || keysDown.has('arrowleft')) {
+        camState.targetX -= cosA * panSpeed;
+        camState.targetZ += sinA * panSpeed;
+        moved = true;
+      }
+      if (keysDown.has('d') || keysDown.has('arrowright')) {
+        camState.targetX += cosA * panSpeed;
+        camState.targetZ -= sinA * panSpeed;
+        moved = true;
+      }
+      if (moved) updateCameraTransform();
+
+      // Step-by-step WFC animation timer
+      if (appState.isPlaying && appState.mode !== 'museum') {
+        stepAccumulator += dt * appState.solveSpeed;
+        let steppedAny = false;
+        while (stepAccumulator >= 1) {
+          stepAccumulator -= 1;
+          const res = stepWFC(true);
+          steppedAny = true;
+          if (res === 'done') {
+            stepAccumulator = 0;
+            break;
+          }
+        }
+        if (steppedAny) {
+          updateAllUI();
+        }
+      }
+
+      // Animate tile pop-ins and water shimmer
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      for (let i = 0; i < solver.cells.length; i++) {
+        const c = solver.cells[i];
+        if (c.collapsed >= 0 && c.animT < 1) {
+          c.animT = reduced ? 1 : Math.min(1, c.animT + dt * 4.5);
+          if (useWebGL && cellGroups[i]) {
+            const easeOutBack = 1 + 0.14 * Math.sin(c.animT * Math.PI);
+            const sy = c.animT >= 1 ? 1 : c.animT * easeOutBack;
+            cellGroups[i].tileHolder.scale.set(1, sy, 1);
+          }
+        }
+      }
+
+      if (useWebGL && MATS.water) {
+        MATS.water.emissiveIntensity = 0.25 + 0.12 * Math.sin(now * 0.0025);
+        if (highlightMesh && highlightMesh.visible) {
+          const pulse = 1 + 0.04 * Math.sin(now * 0.005);
+          highlightMesh.scale.set(pulse, 1, pulse);
+        }
+        renderer.render(scene, orthoCamera);
+      }
+
+      drawHUDOverlay();
+      requestAnimationFrame(mainLoop);
+    }
+
+    // =========================================================================
+    // 8. UI UPDATES & HOISTED EVENT HANDLERS
+    // =========================================================================
+    function updateAllUI() {
+      updateMetricsUI();
+      updateInspectorUI();
+      updateMinimapUI();
+      updateSolveLogUI();
+      updatePlayButton();
+    }
+
+    function updateMetricsUI() {
+      const total = solver.size * solver.size;
+      let collapsed = 0;
+      let sumH = 0;
+      let uncollapsed = 0;
+      for (const c of solver.cells) {
+        if (c.collapsed >= 0) collapsed++;
+        else {
+          sumH += c.entropy;
+          uncollapsed++;
+        }
+      }
+      const meanH = uncollapsed > 0 ? sumH / uncollapsed : 0;
+
+      const elCol = document.getElementById('metric-collapsed');
+      const elStat = document.getElementById('metric-status');
+      const elEnt = document.getElementById('metric-entropy');
+      const elEntSub = document.getElementById('metric-entropy-sub');
+      const elVar = document.getElementById('metric-variants');
+      const elProps = document.getElementById('metric-props');
+      const elRetries = document.getElementById('metric-retries');
+      const dot = document.getElementById('hud-status-dot');
+      const txt = document.getElementById('hud-status-text');
+
+      if (elCol) elCol.textContent = `${collapsed} / ${total}`;
+      if (elEnt) elEnt.textContent = meanH.toFixed(2);
+      if (elEntSub) elEntSub.textContent = uncollapsed > 0 ? `${uncollapsed} cells uncertain` : `Fully collapsed`;
+      if (elVar) elVar.textContent = String(VARIANTS.length);
+      if (elProps) elProps.textContent = String(solver.propagations);
+      if (elRetries) elRetries.textContent = `${solver.retries} ${solver.retries === 1 ? 'retry' : 'retries'}`;
+
+      if (appState.mode === 'museum') {
+        if (txt) txt.textContent = `Tile Museum (${BASE_MODULES.length} modules)`;
+        if (dot) dot.className = 'status-dot';
+      } else if (solver.contradiction) {
+        if (elStat) elStat.textContent = `Contradiction — retry needed`;
+        if (txt) txt.textContent = `Contradiction detected`;
+        if (dot) dot.className = 'status-dot is-error';
+      } else if (collapsed === total) {
+        if (elStat) elStat.textContent = `100% City Complete`;
+        if (txt) txt.textContent = `City complete (${total} tiles)`;
+        if (dot) dot.className = 'status-dot';
+      } else if (appState.isPlaying) {
+        if (elStat) elStat.textContent = `Animating WFC collapse…`;
+        if (txt) txt.textContent = `Solving step ${solver.stepCount} (${Math.round((collapsed / total) * 100)}%)`;
+        if (dot) dot.className = 'status-dot is-solving';
+      } else {
+        if (elStat) elStat.textContent = `Paused · ${collapsed} collapsed`;
+        if (txt) txt.textContent = `Superposition · ${uncollapsed} uncertain`;
+        if (dot) dot.className = 'status-dot is-solving';
+      }
+    }
+
+    function updatePlayButton() {
+      const btn = document.getElementById('btn-play-pause');
+      if (!btn) return;
+      const done = solver.cells.every((c) => c.collapsed >= 0);
+      if (appState.isPlaying) {
+        btn.innerHTML = `<i data-lucide="pause" style="width:16px;height:16px;"></i> Pause`;
+      } else if (done) {
+        btn.innerHTML = `<i data-lucide="play" style="width:16px;height:16px;"></i> Replay Solve`;
+      } else {
+        btn.innerHTML = `<i data-lucide="play" style="width:16px;height:16px;"></i> Animate Solve`;
+      }
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function setSocketBadge(elId, sock) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.textContent = sock;
+      el.className = `socket-tag sock-${sock}`;
+    }
+
+    function updateInspectorUI() {
+      const cell = getCell(appState.selectedCell.x, appState.selectedCell.z);
+      if (!cell) return;
+
+      const coords = document.getElementById('inspector-coords');
+      const title = document.getElementById('inspector-title');
+      const summary = document.getElementById('inspector-summary');
+      const center = document.getElementById('sock-center');
+      const candList = document.getElementById('inspector-candidates');
+      const candHead = document.getElementById('candidates-heading');
+      const btnCol = document.getElementById('btn-collapse-selected');
+
+      if (coords) coords.textContent = `(${cell.x}, ${cell.z})`;
+
+      if (cell.collapsed >= 0) {
+        const v = VARIANTS[cell.collapsed];
+        if (title) title.textContent = v.name;
+        if (summary) summary.textContent = `${v.desc} (Rotation: ${v.rot * 90}°${cell.pinned ? ' · User Pinned' : ''})`;
+        if (center) center.textContent = `H = 0.00`;
+        setSocketBadge('sock-n', v.sockets[0]);
+        setSocketBadge('sock-e', v.sockets[1]);
+        setSocketBadge('sock-s', v.sockets[2]);
+        setSocketBadge('sock-w', v.sockets[3]);
+
+        if (candHead) candHead.textContent = `Collapsed State`;
+        if (btnCol) btnCol.style.display = 'none';
+        if (candList) {
+          candList.innerHTML = `
+            <div class="candidate-item is-selected">
+              <div>
+                <div class="cand-name">${v.name}</div>
+                <div class="cand-meta">Family: ${v.family} · Weight ${v.weight.toFixed(1)} · Rot ${v.rot * 90}°</div>
+              </div>
+              <span class="mono-badge">LOCKED</span>
+            </div>
+          `;
+        }
+      } else {
+        if (title) title.textContent = `Superposition Cell`;
+        if (summary) summary.textContent = `${cell.count} compatible Roman tile variants remain in superposition. Click any candidate below to force-collapse this cell.`;
+        if (center) center.textContent = `H = ${cell.entropy.toFixed(2)}`;
+
+        // Summarize possible sockets per side
+        const list = listVariantsFromMask(cell.mask);
+        const sideOpts = [0, 1, 2, 3].map((d) => {
+          const uniq = [...new Set(list.map((v) => v.sockets[d]))];
+          return uniq.length === 1 ? uniq[0] : `${uniq.length}×`;
+        });
+        ['sock-n', 'sock-e', 'sock-s', 'sock-w'].forEach((id, i) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.textContent = sideOpts[i];
+            el.className = sideOpts[i].length === 1 ? `socket-tag sock-${sideOpts[i]}` : 'socket-tag sock-R';
+          }
+        });
+
+        if (candHead) candHead.textContent = `Surviving Candidates (${list.length})`;
+        if (btnCol) btnCol.style.display = list.length > 0 ? 'inline-flex' : 'none';
+        if (candList) {
+          if (list.length === 0) {
+            candList.innerHTML = `<div style="padding:0.5rem; color:var(--error); font-weight:600;">0 valid variants (Contradiction). Reset or Retry to resolve.</div>`;
+          } else {
+            candList.innerHTML = list.slice(0, 28).map((v) => `
+              <button type="button" class="candidate-item" onclick="forceCollapseVariant(${cell.x}, ${cell.z}, ${v.index})">
+                <div>
+                  <div class="cand-name">${v.name}</div>
+                  <div class="cand-meta">[${v.sockets.join('·')}] · Rot ${v.rot * 90}°</div>
+                </div>
+                <span class="cand-meta">w=${v.weight.toFixed(1)}</span>
+              </button>
+            `).join('');
+          }
+        }
+      }
+    }
+
+    function updateMinimapUI() {
+      const grid = document.getElementById('minimap-grid');
+      if (!grid) return;
+      const N = solver.size;
+      grid.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
+
+      const famColors = {
+        roads: '#57483f',
+        aqueducts: '#1d6356',
+        insulae: '#b84a24',
+        domus: '#8f6524',
+        forums: '#a38239',
+        gardens: '#2b6349'
+      };
+
+      grid.innerHTML = solver.cells.map((c) => {
+        const isSel = appState.selectedCell.x === c.x && appState.selectedCell.z === c.z;
+        let bg = '#b84a24';
+        let label = '';
+        if (c.collapsed >= 0) {
+          bg = famColors[VARIANTS[c.collapsed].family] || '#57483f';
+          label = VARIANTS[c.collapsed].family[0].toUpperCase();
+        } else {
+          const norm = Math.min(1, c.entropy / solver.maxEntropy);
+          bg = c.count === 0 ? '#b82929' : c.count <= 4 ? '#1d6356' : norm < 0.62 ? '#b5893e' : '#c97a5b';
+          label = String(c.count);
+        }
+        return `<button type="button" class="mini-cell ${isSel ? 'is-selected' : ''} ${c.pinned ? 'is-pinned' : ''}"
+          style="background:${bg};"
+          title="(${c.x},${c.z})"
+          onclick="selectMinimapCell(${c.x}, ${c.z})">${label}</button>`;
+      }).join('');
+    }
+
+    function updateSolveLogUI() {
+      const el = document.getElementById('solve-log');
+      if (!el) return;
+      el.innerHTML = solver.logs.slice(0, 10).map((entry, idx) =>
+        `<div class="log-entry ${idx === 0 ? 'is-fresh' : ''}">${entry.msg}</div>`
+      ).join('');
+    }
+
+    function renderBuildPalette() {
+      const listEl = document.getElementById('build-module-list');
+      const statusEl = document.getElementById('brush-status');
+      if (!listEl) return;
+
+      const filtered = appState.paletteFilter === 'all'
+        ? BASE_MODULES
+        : BASE_MODULES.filter((m) => m.family === appState.paletteFilter);
+
+      let html = `
+        <button type="button" class="candidate-item ${appState.brushModuleId === 'auto' ? 'is-selected' : ''}" onclick="selectBuildModule('auto')">
+          <div>
+            <div class="cand-name">Auto-Fit Best Socket</div>
+            <div class="cand-meta">Matches surrounding road, aqueduct &amp; forum edges</div>
+          </div>
+          <span class="cand-meta">SMART</span>
+        </button>
+      `;
+
+      html += filtered.map((m) => `
+        <button type="button" class="candidate-item ${appState.brushModuleId === m.id ? 'is-selected' : ''}" onclick="selectBuildModule('${m.id}')">
+          <div>
+            <div class="cand-name">${m.name}</div>
+            <div class="cand-meta">${m.family} · [${m.sockets.join('·')}]</div>
+          </div>
+          <span class="cand-meta">w=${m.weight}</span>
+        </button>
+      `).join('');
+
+      listEl.innerHTML = html;
+      if (statusEl) {
+        const bName = appState.brushModuleId === 'auto' ? 'Auto-Fit' : (MODULE_BY_ID[appState.brushModuleId]?.name || 'Module');
+        statusEl.textContent = `Brush: ${bName} · ${appState.brushRot * 90}°`;
+      }
+    }
+
+    // =========================================================================
+    // 9. HOISTED UI ACTION HANDLERS
+    // =========================================================================
+    function setAppMode(mode) {
+      appState.mode = mode;
+      ['generate', 'build', 'museum'].forEach((m) => {
+        const b = document.getElementById(`mode-btn-${m}`);
+        if (b) b.classList.toggle('is-active', m === mode);
+      });
+
+      const insp = document.getElementById('panel-inspector');
+      const pal = document.getElementById('panel-build-palette');
+      const buildPill = document.getElementById('hud-build-pill');
+      const threeCanvas = document.getElementById('three-canvas');
+
+      if (insp) insp.style.display = mode === 'build' ? 'none' : 'flex';
+      if (pal) pal.style.display = mode === 'build' ? 'flex' : 'none';
+      if (buildPill) buildPill.style.display = mode === 'build' ? 'inline-flex' : 'none';
+      if (threeCanvas) threeCanvas.classList.toggle('is-build-mode', mode === 'build');
+
+      if (useWebGL && cityGroup && entropyGroup && socketGroup && museumGroup) {
+        cityGroup.visible = mode !== 'museum';
+        entropyGroup.visible = mode !== 'museum' && appState.showEntropyHeat;
+        socketGroup.visible = mode !== 'museum' && appState.showSocketPins;
+        museumGroup.visible = mode === 'museum';
+      }
+
+      if (mode === 'museum') {
+        appState.isPlaying = false;
+        camState.targetX = 0;
+        camState.targetZ = 0;
+        camState.zoom = 0.92;
+      } else {
+        if (mode === 'build') renderBuildPalette();
+        camState.targetX = 0;
+        camState.targetZ = 0;
+      }
+
+      handleResize();
+      updateCameraTransform();
+      updateSelectionReticle();
+      updateAllUI();
+      persistState();
+    }
+
+    function togglePlaySolve() {
+      if (appState.mode === 'museum') setAppMode('generate');
+      const done = solver.cells.every((c) => c.collapsed >= 0);
+      if (done && !appState.isPlaying) {
+        initSolver(true);
+        appState.isPlaying = true;
+      } else {
+        appState.isPlaying = !appState.isPlaying;
+      }
+      updatePlayButton();
+      updateMetricsUI();
+    }
+
+    function stepSolveOnce() {
+      if (appState.mode === 'museum') setAppMode('generate');
+      appState.isPlaying = false;
+      stepWFC(true);
+      updateAllUI();
+    }
+
+    function instantSolveAll() {
+      if (appState.mode === 'museum') setAppMode('generate');
+      const done = solver.cells.every((c) => c.collapsed >= 0);
+      if (done) initSolver(true);
+      solveInstant();
+    }
+
+    function handleResetGrid(btn) {
+      if (appState.pinnedCells.length > 0 && btn && btn.dataset.armed !== 'true') {
+        btn.dataset.armed = 'true';
+        btn.classList.add('is-armed');
+        btn.innerHTML = `<i data-lucide="alert-triangle" style="width:16px;height:16px;"></i> Confirm Clear Pins`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          if (btn.dataset.armed === 'true') {
+            btn.dataset.armed = 'false';
+            btn.classList.remove('is-armed');
+            btn.innerHTML = `<i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i> Reset`;
+            if (window.lucide) window.lucide.createIcons();
+          }
+        }, 3500);
+        return;
+      }
+      if (btn) {
+        btn.dataset.armed = 'false';
+        btn.classList.remove('is-armed');
+        btn.innerHTML = `<i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i> Reset`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+      appState.isPlaying = false;
+      appState.pinnedCells = [];
+      solver.retries = 0;
+      initSolver(false);
+      persistState();
+    }
+
+    function changeGridSize(val) {
+      appState.gridSize = Math.max(6, Math.min(12, parseInt(val, 10) || 8));
+      appState.isPlaying = false;
+      appState.pinnedCells = [];
+      solver.retries = 0;
+      initSolver(false);
+      handleResize();
+      updateCameraTransform();
+      persistState();
+    }
+
+    function changeBorderMode(val) {
+      appState.borderMode = val === 'open' ? 'open' : 'closed';
+      initSolver(true);
+      persistState();
+    }
+
+    function setLightingPreset(val) {
+      appState.lighting = val;
+      applyLightingToThree(val);
+      persistState();
+    }
+
+    function setSolveSpeed(val) {
+      appState.solveSpeed = Math.max(1, Math.min(24, parseInt(val, 10) || 6));
+      const el = document.getElementById('speed-readout');
+      if (el) el.textContent = `${appState.solveSpeed} /s`;
+      persistState();
+    }
+
+    function toggleEntropyHeat() {
+      appState.showEntropyHeat = !appState.showEntropyHeat;
+      const btn = document.getElementById('toggle-entropy-heat');
+      if (btn) btn.classList.toggle('is-on', appState.showEntropyHeat);
+      if (useWebGL && entropyGroup) entropyGroup.visible = appState.showEntropyHeat && appState.mode !== 'museum';
+      for (const c of solver.cells) updateCellMesh(c);
+      persistState();
+    }
+
+    function toggleEntropyNums() {
+      appState.showEntropyNums = !appState.showEntropyNums;
+      const btn = document.getElementById('toggle-entropy-nums');
+      if (btn) btn.classList.toggle('is-on', appState.showEntropyNums);
+      persistState();
+    }
+
+    function toggleSocketMarkers() {
+      appState.showSocketPins = !appState.showSocketPins;
+      const btn = document.getElementById('toggle-sockets');
+      if (btn) btn.classList.toggle('is-on', appState.showSocketPins);
+      if (useWebGL && socketGroup) socketGroup.visible = appState.showSocketPins && appState.mode !== 'museum';
+      persistState();
+    }
+
+    function orbitStep(dir) {
+      camState.azimuth += dir * (Math.PI / 4);
+      updateCameraTransform();
+    }
+
+    function zoomStep(factor) {
+      camState.zoom = Math.max(0.45, Math.min(2.8, camState.zoom / factor));
+      updateCameraTransform();
+    }
+
+    function setCameraPreset(preset) {
+      appState.cameraPreset = preset;
+      ['iso', 'top', 'low'].forEach((p) => {
+        const b = document.getElementById(`cam-preset-${p}`);
+        if (b) b.classList.toggle('is-active', p === preset);
+      });
+      if (preset === 'iso') {
+        camState.azimuth = Math.PI * 0.25;
+        camState.elevation = 0.6154797;
+        camState.zoom = 1.0;
+      } else if (preset === 'top') {
+        camState.azimuth = 0;
+        camState.elevation = 1.48;
+        camState.zoom = 1.05;
+      } else if (preset === 'low') {
+        camState.azimuth = Math.PI * 0.18;
+        camState.elevation = 0.34;
+        camState.zoom = 1.18;
+      }
+      camState.targetX = 0;
+      camState.targetZ = 0;
+      updateCameraTransform();
+    }
+
+    function resetCameraView() {
+      setCameraPreset('iso');
+    }
+
+    function applySeed(val) {
+      appState.seed = (val || 'ROMA-753').trim().slice(0, 24);
+      const badge = document.getElementById('seed-badge');
+      if (badge) badge.textContent = `#${appState.seed.toUpperCase()}`;
+      solver.retries = 0;
+      initSolver(true);
+      persistState();
+    }
+
+    function randomizeSeed() {
+      const prefixes = ['ROMA', 'OSTIA', 'POMPEII', 'TIVOLI', 'LUGDUNUM', 'ARLES', 'NARBOS', 'TARRACO'];
+      const num = Math.floor(100 + Math.random() * 899);
+      const next = `${prefixes[Math.floor(Math.random() * prefixes.length)]}-${num}`;
+      const input = document.getElementById('input-seed');
+      if (input) input.value = next;
+      appState.seed = next;
+      const badge = document.getElementById('seed-badge');
+      if (badge) badge.textContent = `#${next}`;
+      solver.retries = 0;
+      initSolver(true);
+      appState.isPlaying = true;
+      updatePlayButton();
+      persistState();
+    }
+
+    function loadScenario(type) {
+      if (appState.mode === 'museum') setAppMode('generate');
+      appState.isPlaying = false;
+      appState.pinnedCells = [];
+      solver.retries = 0;
+      const N = appState.gridSize;
+      const mid = Math.floor(N / 2);
+
+      function findVar(moduleId, rot = 0) {
+        const v = VARIANTS.find((item) => item.moduleId === moduleId && item.rot === rot);
+        return v ? v.index : 0;
+      }
+
+      if (type === 'imperial') {
+        appState.pinnedCells = [
+          { x: mid, z: mid, variantIndex: findVar('forum_plaza', 0) },
+          { x: mid, z: mid - 1, variantIndex: findVar('forum_temple', 0) },
+          { x: mid, z: mid + 1, variantIndex: findVar('forum_colonnade', 0) }
+        ];
+        initSolver(true);
+        appState.isPlaying = true;
+      } else if (type === 'aqueduct') {
+        appState.pinnedCells = [
+          { x: mid, z: mid - 1, variantIndex: findVar('aqua_straight', 0) },
+          { x: mid, z: mid, variantIndex: findVar('aqua_overpass', 0) },
+          { x: mid, z: mid + 1, variantIndex: findVar('aqua_castellum', 0) }
+        ];
+        initSolver(true);
+        appState.isPlaying = true;
+      } else if (type === 'villas') {
+        appState.pinnedCells = [
+          { x: mid - 1, z: mid, variantIndex: findVar('domus_peristyle', 0) },
+          { x: mid, z: mid, variantIndex: findVar('garden_cypress', 0) },
+          { x: mid, z: mid + 1, variantIndex: findVar('domus_atrium', 0) }
+        ];
+        initSolver(true);
+        appState.isPlaying = true;
+      } else {
+        initSolver(false);
+        appState.isPlaying = false;
+      }
+      updateAllUI();
+      persistState();
+    }
+
+    function selectMinimapCell(x, z) {
+      appState.selectedCell = { x, z };
+      updateSelectionReticle();
+      updateInspectorUI();
+      updateMinimapUI();
+    }
+
+    function forceCollapseVariant(x, z, variantIndex) {
+      const cell = getCell(x, z);
+      if (!cell || cell.collapsed >= 0) return;
+      collapseCellWithVariant(cell, variantIndex);
+      updateAllUI();
+    }
+
+    function collapseSelectedCell() {
+      const cell = getCell(appState.selectedCell.x, appState.selectedCell.z);
+      if (!cell || cell.collapsed >= 0 || cell.count === 0) return;
+      const chosen = chooseWeightedVariant(cell);
+      collapseCellWithVariant(cell, chosen);
+      updateAllUI();
+    }
+
+    function setPaletteFilter(fam, btnEl) {
+      appState.paletteFilter = fam;
+      document.querySelectorAll('#palette-filters .filter-pill').forEach((b) => b.classList.remove('is-active'));
+      if (btnEl) btnEl.classList.add('is-active');
+      renderBuildPalette();
+    }
+
+    function selectBuildModule(moduleId) {
+      appState.brushModuleId = moduleId;
+      appState.brushRot = 0;
+      renderBuildPalette();
+    }
+
+    function rotateBuildBrush() {
+      appState.brushRot = (appState.brushRot + 1) % 4;
+      renderBuildPalette();
+    }
+
+    function solveAroundPins() {
+      appState.isPlaying = true;
+      updatePlayButton();
+      updateMetricsUI();
+    }
+
+    // =========================================================================
+    // 10. PERSISTENCE VIA GEMINI NOTEBOOK SHIM API
+    // =========================================================================
+    async function persistState() {
+      if (!window.notebookAppApi || !window.notebookAppApi.setAppState) return;
+      try {
+        await window.notebookAppApi.setAppState({
+          gridSize: appState.gridSize,
+          borderMode: appState.borderMode,
+          lighting: appState.lighting,
+          seed: appState.seed,
+          solveSpeed: appState.solveSpeed,
+          showEntropyHeat: appState.showEntropyHeat,
+          showEntropyNums: appState.showEntropyNums,
+          showSocketPins: appState.showSocketPins,
+          pinnedCells: appState.pinnedCells
+        });
+      } catch (e) {
+        // Ignore persistence errors silently
+      }
+    }
+
+    async function bootstrapApp() {
+      initThreeJS();
+      setupViewportListeners();
+
+      let restored = null;
+      if (window.notebookAppApi && window.notebookAppApi.getAppState) {
+        try {
+          restored = await window.notebookAppApi.getAppState();
+        } catch (e) {
+          restored = null;
+        }
+      }
+
+      if (restored && typeof restored === 'object') {
+        if (restored.gridSize) appState.gridSize = restored.gridSize;
+        if (restored.borderMode) appState.borderMode = restored.borderMode;
+        if (restored.lighting) appState.lighting = restored.lighting;
+        if (restored.seed) appState.seed = restored.seed;
+        if (restored.solveSpeed) appState.solveSpeed = restored.solveSpeed;
+        if (typeof restored.showEntropyHeat === 'boolean') appState.showEntropyHeat = restored.showEntropyHeat;
+        if (typeof restored.showEntropyNums === 'boolean') appState.showEntropyNums = restored.showEntropyNums;
+        if (typeof restored.showSocketPins === 'boolean') appState.showSocketPins = restored.showSocketPins;
+        if (Array.isArray(restored.pinnedCells)) appState.pinnedCells = restored.pinnedCells;
+      }
+
+      // Sync DOM controls with initial state
+      const selSize = document.getElementById('select-grid-size');
+      if (selSize) selSize.value = String(appState.gridSize);
+      const selLight = document.getElementById('select-lighting');
+      if (selLight) selLight.value = appState.lighting;
+      const selBorder = document.getElementById('select-border');
+      if (selBorder) selBorder.value = appState.borderMode;
+      const inpSeed = document.getElementById('input-seed');
+      if (inpSeed) inpSeed.value = appState.seed;
+      const seedBadge = document.getElementById('seed-badge');
+      if (seedBadge) seedBadge.textContent = `#${appState.seed.toUpperCase()}`;
+      const speedSlider = document.getElementById('slider-speed');
+      if (speedSlider) speedSlider.value = String(appState.solveSpeed);
+      const speedRead = document.getElementById('speed-readout');
+      if (speedRead) speedRead.textContent = `${appState.solveSpeed} /s`;
+
+      const heatBtn = document.getElementById('toggle-entropy-heat');
+      if (heatBtn) heatBtn.classList.toggle('is-on', appState.showEntropyHeat);
+      const numBtn = document.getElementById('toggle-entropy-nums');
+      if (numBtn) numBtn.classList.toggle('is-on', appState.showEntropyNums);
+      const sockBtn = document.getElementById('toggle-sockets');
+      if (sockBtn) sockBtn.classList.toggle('is-on', appState.showSocketPins);
+
+      applyLightingToThree(appState.lighting);
+      initSolver(true);
+      handleResize();
+      updateCameraTransform();
+
+      // Begin with an immediate live step-by-step solve animation so users see WFC in action!
+      if (appState.pinnedCells.length === 0) {
+        // Seed a central Forum Plaza so the first city feels dramatically Roman right away
+        const mid = Math.floor(appState.gridSize / 2);
+        const plaza = VARIANTS.find((v) => v.moduleId === 'forum_plaza');
+        if (plaza) {
+          const c = getCell(mid, mid);
+          if (c) collapseCellWithVariant(c, plaza.index);
+        }
+      }
+      appState.isPlaying = true;
+      updateAllUI();
+
+      if (window.lucide) window.lucide.createIcons();
+      if (window.notebookAppApi && window.notebookAppApi.notifyAppReady) {
+        window.notebookAppApi.notifyAppReady();
+      }
+      requestAnimationFrame(mainLoop);
+    }
+
+    document.addEventListener('DOMContentLoaded', bootstrapApp);
+  </script>
+</body>
+</html>
