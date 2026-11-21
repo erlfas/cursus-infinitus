@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forma Urbis Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a marble-plan reading column; live solver boards break out wider. */
+  :root {
+    --bg: #f3f2ee;
+    --surface: #fbfaf7;
+    --ink: #1f1d1b;
+    --muted: #5e5952;
+    --rule: #d8d3ca;
+    --accent: #146457;
+    --accent-soft: #dcebe6;
+    --danger: #b3261e;
+    --fam-roads: #4a4643;
+    --fam-aqueducts: #2a8577;
+    --fam-insulae: #b5532f;
+    --fam-domus: #c99a58;
+    --fam-forums: #d9c98e;
+    --fam-gardens: #4f7d45;
+    --sock-r: #2e2b29;
+    --sock-a: #7fd3c4;
+    --sock-f: #f4ead0;
+    --cell-empty: #e8e4dc;
+    --cell-high: #b9b1a4;
+    --code-bg: #ebe8e1;
+    --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+    --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --measure: 68ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151413; --surface: #1e1c1a; --ink: #ece8e1; --muted: #a59e94; --rule: #36322e;
+      --accent: #56b8a6; --accent-soft: #1c3631; --danger: #ef6b5f;
+      --fam-roads: #6c6762; --fam-aqueducts: #2f9a89; --fam-insulae: #c2603a; --fam-domus: #c99a58;
+      --fam-forums: #b9a965; --fam-gardens: #4f8a44;
+      --sock-r: #171513; --sock-a: #9fe6d8; --sock-f: #f7efd8;
+      --cell-empty: #2a2724; --cell-high: #4a4540; --code-bg: #22201d;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151413; --surface: #1e1c1a; --ink: #ece8e1; --muted: #a59e94; --rule: #36322e;
+    --accent: #56b8a6; --accent-soft: #1c3631; --danger: #ef6b5f;
+    --fam-roads: #6c6762; --fam-aqueducts: #2f9a89; --fam-insulae: #c2603a; --fam-domus: #c99a58;
+    --fam-forums: #b9a965; --fam-gardens: #4f8a44;
+    --sock-r: #171513; --sock-a: #9fe6d8; --sock-f: #f7efd8;
+    --cell-empty: #2a2724; --cell-high: #4a4540; --code-bg: #22201d;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 3rem 5rem;
+    display: grid;
+    gap: 3.5rem;
+  }
+  .prose { max-width: var(--measure); display: grid; gap: 1rem; }
+  .prose > * { margin: 0; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+  h1 { font-size: clamp(2.1rem, 1.4rem + 3vw, 3.4rem); line-height: 1.08; }
+  h2 { font-size: clamp(1.45rem, 1.2rem + 1vw, 1.9rem); line-height: 1.2; }
+  h3 { font-size: 1.1rem; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  .lede { font-size: 1.2rem; color: var(--muted); max-width: 62ch; }
+  a { color: var(--accent); }
+  code { font-family: var(--font-mono); font-size: 0.88em; background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 4px; }
+  pre {
+    margin: 0; font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.55;
+    background: var(--code-bg); border-radius: 8px; padding: 1rem 1.1rem; overflow-x: auto;
+    border-left: 3px solid var(--accent);
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .file { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); margin-bottom: -0.6rem; }
+  .c { color: var(--muted); }
+  strong { font-weight: 650; }
+
+  header.hero { display: grid; gap: 1rem; }
+
+  /* section with step marker: the order of these sections is the order the algorithm runs */
+  section.step { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: 0 1.2rem; }
+  .numeral {
+    font-family: var(--font-display); font-size: 1.05rem; color: var(--accent); font-weight: 700;
+    border-top: 2px solid var(--accent); padding-top: 0.35rem; align-self: start; letter-spacing: 0.04em;
+  }
+  section.plain { display: grid; gap: 1rem; }
+  @media (max-width: 640px) {
+    section.step { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .numeral { width: 3rem; }
+  }
+
+  .formula {
+    font-family: var(--font-mono); font-size: 0.95rem; background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 0.9rem 1rem; overflow-x: auto; white-space: nowrap;
+  }
+
+  /* socket legend */
+  .sockets { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; }
+  .sock { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 0.75rem; align-items: center;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem; }
+  .sock canvas { width: 52px; height: 52px; border-radius: 4px; }
+  .sock b { font-family: var(--font-mono); }
+  .sock span { font-size: 0.9rem; color: var(--muted); line-height: 1.35; display: block; }
+
+  table { border-collapse: collapse; font-size: 0.92rem; width: 100%; }
+  th, td { text-align: left; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--rule); }
+  th { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+  .table-wrap { overflow-x: auto; }
+
+  /* ===== live solver ===== */
+  .sim {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 12px;
+    padding: 1rem; display: grid; gap: 0.9rem;
+  }
+  .sim-head { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: baseline; justify-content: space-between; }
+  .sim-title { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
+  .status { font-family: var(--font-mono); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.45rem; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.run { background: var(--accent); }
+  .dot.bad { background: var(--danger); }
+  .sim-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(250px, 1fr); gap: 1rem; align-items: start; }
+  @media (max-width: 820px) { .sim-body { grid-template-columns: minmax(0, 1fr); } }
+  .board { width: 100%; max-width: 100%; display: block; border-radius: 6px; cursor: crosshair; touch-action: manipulation; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  button {
+    font: 600 0.88rem var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 0.45rem 0.95rem; cursor: pointer; min-height: 38px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type="text"] {
+    font: 500 0.85rem var(--font-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 0.4rem 0.6rem; width: 9.5rem; min-height: 38px;
+  }
+  input[type="range"] { accent-color: var(--accent); width: 90px; }
+  label.inline { font-size: 0.8rem; color: var(--muted); display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); }
+
+  .side { display: grid; gap: 0.8rem; min-width: 0; }
+  .card { border: 1px solid var(--rule); border-radius: 8px; padding: 0.75rem 0.85rem; background: var(--bg); min-width: 0; }
+  .card h4 { margin: 0 0 0.35rem; font: 600 0.72rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+  .stat b { display: block; font: 600 1.25rem var(--font-mono); font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); }
+  .insp { font-size: 0.88rem; line-height: 1.45; }
+  .insp .name { font-weight: 650; font-size: 0.95rem; }
+  .insp .meta { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+  .bars { display: grid; gap: 3px; margin-top: 0.45rem; }
+  .bar { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 2rem; gap: 0.4rem; align-items: center; font-size: 0.75rem; font-family: var(--font-mono); }
+  .bar i { display: block; height: 8px; border-radius: 2px; }
+  .bar em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+  .log { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); max-height: 150px; overflow-y: auto; display: grid; gap: 2px; }
+  .log div { border-left: 2px solid var(--rule); padding-left: 0.45rem; }
+  .log div:first-child { border-left-color: var(--accent); color: var(--ink); }
+  .log div.bad { border-left-color: var(--danger); color: var(--danger); }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.75rem; font-family: var(--font-mono); color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+  /* pipeline */
+  .pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; }
+  .pipe { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 0.7rem; font-size: 0.86rem; line-height: 1.4; display: grid; gap: 0.25rem; align-content: start; }
+  .pipe b { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .pipe small { color: var(--muted); font-family: var(--font-mono); font-size: 0.72rem; }
+  @media (max-width: 820px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 460px) { .pipeline { grid-template-columns: minmax(0, 1fr); } }
+
+  footer { border-top: 1px solid var(--rule); padding-top: 1.2rem; font-size: 0.88rem; color: var(--muted); display: grid; gap: 0.4rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="hero">
+    <span class="eyebrow">Forma Urbis Â· Wave Function Collapse</span>
+    <h1>How the endless city collapses</h1>
+    <p class="lede">The Roman city you run through in the game isn't designed by hand. A Wave Function Collapse solver lays it out tile by tile, using only one local rule: the edges of neighbouring tiles must match. The board below runs the same solver, tiles and random-number generator as the game, on the first 8 Ã— 8 chunk of the city.</p>
+  </header>
+
+  <div class="sim" id="sim1">
+    <div class="sim-head">
+      <span class="sim-title">Chunk (0, 0): the spawn block</span>
+      <span class="status"><span class="dot" data-role="dot"></span><span data-role="status">Ready</span></span>
+    </div>
+    <div class="controls">
+      <button class="primary" data-act="step">Step</button>
+      <button data-act="play">Play</button>
+      <button data-act="finish">Finish chunk</button>
+      <button data-act="reset">Reset</button>
+      <label class="inline" for="seed1">Seed <input type="text" id="seed1" data-role="seed" value="ROMA-753" maxlength="24"></label>
+      <button data-act="random">New seed</button>
+      <label class="inline" for="speed1">Speed <input type="range" id="speed1" data-role="speed" min="1" max="30" value="8"></label>
+    </div>
+    <div class="sim-body">
+      <canvas class="board" data-role="board" aria-label="8 by 8 WFC grid"></canvas>
+      <div class="side">
+        <div class="card"><div class="stats">
+          <div class="stat"><b data-role="s-col">0/64</b><span>collapsed</span></div>
+          <div class="stat"><b data-role="s-h">0.00</b><span>mean H (bits)</span></div>
+          <div class="stat"><b data-role="s-prop">0</b><span>propagations</span></div>
+        </div></div>
+        <div class="card insp"><h4>Cell under pointer</h4><div data-role="insp">Hover or tap a cell to see its remaining candidates.</div></div>
+        <div class="card"><h4>Solver log</h4><div class="log" data-role="log"></div></div>
+      </div>
+    </div>
+    <div class="legend" data-role="legend"></div>
+  </div>
+
+  <section class="step">
+    <div class="numeral">I</div>
+    <div class="prose">
+      <span class="eyebrow">Tiles and sockets</span>
+      <h2>24 modules, four edge types</h2>
+      <p>Every module, whether a street, an aqueduct arch, an insula or a forum stoa, declares what sits on each of its four edges, in the order north, east, south, west. There are only four edge types, called <em>sockets</em>:</p>
+      <div class="sockets" id="socket-legend"></div>
+      <p>Two tiles may sit side by side only when the touching edges carry the same socket. A road edge must meet a road edge, and an aqueduct channel must continue into another aqueduct.</p>
+      <p>Most modules can be rotated. Turning a module 90Â° clockwise shifts its socket list by one (<code>[N,E,S,W] â†’ [W,N,E,S]</code>). The 24 base modules expand into <strong>74 oriented variants</strong>, and each variant gets an equal share of its module's weight. Roads get an extra Ã—1.35 in the endless game, so there are more side streets to run down.</p>
+<div class="file">scripts/wfc_data.gd</div>
+<pre><code>for rot in rots:
+    <span class="c"># Rotate clockwise: [N, E, S, W] -> after 1 CW turn: [W, N, E, S]</span>
+    for d in 4:
+        v_sockets.append(SOCKET_CODES[socks[(4 + d - rot) % 4]])
+    var w = float(mod.weight) * mult / float(rots.size())</code></pre>
+      <p>From the socket lists the game precomputes a compatibility table: for every variant and direction, the set of variants allowed next to it. Two "solitary" landmarks, the four-way crossroads and the Capitoline temple, refuse to sit beside a copy of themselves.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">II</div>
+    <div class="prose">
+      <span class="eyebrow">Superposition</span>
+      <h2>Every cell starts as all 74 possibilities</h2>
+      <p>Before anything is decided, each cell holds the full set of variants, its <em>superposition</em>. The game stores that set as a bitmask. Since 74 bits don't fit in one 64-bit integer, each mask is split into two words of 40 bits, <code>lo</code> and <code>hi</code>. Removing options is just a bitwise AND, so the solver mostly does integer arithmetic.</p>
+      <p>On the board, an undecided cell shows how many candidates it still has. Darker grey means more uncertainty.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">III</div>
+    <div class="prose">
+      <span class="eyebrow">Entropy and choosing a cell</span>
+      <h2>Collapse the most constrained cell first</h2>
+      <p>The solver measures uncertainty as weighted Shannon entropy. A cell whose remaining options carry weights <i>w</i> has</p>
+      <div class="formula">H = log(Î£w) âˆ’ Î£(w Â· log w) / Î£w &nbsp;&nbsp;<span class="c">(converted to bits)</span></div>
+      <p>Each step picks the uncollapsed cell with the lowest <i>H</i>. This is the minimum-remaining-values heuristic: deal with the cell that has the fewest choices before it runs out of them. A cell with exactly one option left always goes first. A tiny random jitter breaks ties, so equal cells aren't always filled in reading order. On the board, the cell that will be collapsed next has a ring around it.</p>
+<div class="file">scripts/infinite_wfc.gd Â· ChunkSolver._pick_mrv</div>
+<pre><code>for i in CELLS:
+    if collapsed[i] >= 0: continue
+    if count[i] == 0: return -2          <span class="c"># contradiction</span>
+    var jitter = rng.next_float() * 0.0005
+    var score = (-10.0 if count[i] == 1 else entropy[i]) + jitter
+    if score &lt; best_score: best_score = score; best = i</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">IV</div>
+    <div class="prose">
+      <span class="eyebrow">Collapse</span>
+      <h2>A weighted draw, nudged by the neighbours</h2>
+      <p>The chosen cell is reduced to one variant, drawn at random in proportion to weight. Before the draw, the solver looks at the families of the four neighbours that are already decided and boosts matching candidates. That makes civic and green spaces cluster into forums and parks instead of scattering as single tiles:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Candidate family</th><th>Boost per matching neighbour</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Forums</td><td class="num">Ã— (1 + 0.90Â·k)</td><td>Plazas grow into large squares</td></tr>
+          <tr><td>Gardens, Domus</td><td class="num">Ã— (1 + 0.55Â·k)</td><td>Villa quarters and parks</td></tr>
+          <tr><td>Aqueducts</td><td class="num">Ã— (1 + 0.35Â·k)</td><td>Longer aqueduct runs</td></tr>
+          <tr><td>Roads, Insulae</td><td class="num">Ã— 1</td><td>No clustering bias</td></tr>
+        </tbody>
+      </table></div>
+      <p>Here <i>k</i> is the number of decided neighbours of that family. The random draw comes from a mulberry32 generator seeded with an FNV-1a hash of the seed text, ported bit-for-bit from the original HTML generator. The same seed therefore gives the same chunk.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">V</div>
+    <div class="prose">
+      <span class="eyebrow">Propagation</span>
+      <h2>One decision ripples outward</h2>
+      <p>Collapsing a cell narrows what its neighbours can be, which narrows <em>their</em> neighbours, and so on. The solver keeps a queue of changed cells. For each one, it takes the union of the compatibility masks of every option the cell still has, per direction, and ANDs that union into the neighbour. If the neighbour's mask shrank, the neighbour joins the queue too.</p>
+<div class="file">scripts/infinite_wfc.gd Â· ChunkSolver._propagate (simplified)</div>
+<pre><code>while head &lt; queue.size():
+    var ci = queue[head]; head += 1
+    var allowed = union of COMPAT[v][d] for each option v still in cell ci
+    for each neighbour ni in direction d:
+        var next = mask[ni] &amp; allowed[d]
+        if next != mask[ni]:
+            mask[ni] = next
+            if next == 0: return false     <span class="c"># contradiction</span>
+            queue.append(ni)</code></pre>
+      <p>On the board, cells that propagation just narrowed flash briefly. Early on a single collapse can reach several cells away. Late in the solve most cells are already constrained, and the ripples are short.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">VI</div>
+    <div class="prose">
+      <span class="eyebrow">Contradiction</span>
+      <h2>When a cell runs out of options, start the chunk again</h2>
+      <p>Sometimes the choices made so far leave a cell with zero candidates. This solver doesn't backtrack step by step. It throws the attempt away and re-solves the chunk with a fresh random stream, seeded <code>seed|cx|cz|attempt</code>, up to 12 times. With these sockets that rarely takes more than one attempt. In the game's headless test, 100 chunks across four seeds needed only one retry in total.</p>
+      <p>Press <b>Play</b> on a few seeds above. If a contradiction happens, the board marks the empty cell in red, and the next step restarts the chunk.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="numeral">VII</div>
+    <div class="prose">
+      <span class="eyebrow">Going infinite</span>
+      <h2>Chunks that respect their neighbours</h2>
+      <p>A finite grid can be solved in one go. An endless city can't, so the world is split into 8 Ã— 8 chunks. A chunk is solved only when the runner gets close to it. Every chunk is solved with the same steps Iâ€“VI, plus two extra sets of constraints applied before the first collapse.</p>
+      <p><strong>Seams.</strong> For each edge cell of the new chunk, the game checks the neighbour across the chunk border. If that neighbour is already solved, the edge cell is ANDed with what that neighbour allows. The new chunk therefore starts out fitting everything already built around it.</p>
+<div class="file">scripts/infinite_wfc.gd Â· make_job_input</div>
+<pre><code>if cells.has(nw):                      <span class="c"># neighbour across the border is solved</span>
+    var nv = cells[nw]
+    lo &amp;= WfcData.compat_lo[nv * 4 + od]
+    hi &amp;= WfcData.compat_hi[nv * 4 + od]</code></pre>
+      <p><strong>The Roman street grid.</strong> Pure WFC could box the runner in with buildings. To stop that, every 16th column is pinned to a northâ€“south road (a <em>cardo</em>), every 16th row to an eastâ€“west road (a <em>decumanus</em>), and every crossing to a four-way junction. A pin doesn't name a single tile. It only requires road sockets along the avenue, so T-junctions, side streets and even aqueduct overpasses can still appear on it. The grid of avenues is endless and connected.</p>
+      <p><strong>Impossible corners.</strong> Rarely, a corner cell touches two older chunks whose edges no single variant can satisfy. Instead of failing the whole chunk, only that cell is relaxed to the variants with the fewest mismatched edges. The rest of the chunk is still solved properly. In the game's headless test it affected at most one tile edge per seed across a 40 Ã— 40-cell area.</p>
+    </div>
+  </section>
+
+  <div class="sim" id="sim2">
+    <div class="sim-head">
+      <span class="sim-title">Seam demo: chunk (1, 0) grows off chunk (0, 0)</span>
+      <span class="status"><span class="dot" data-role="dot"></span><span data-role="status">Ready</span></span>
+    </div>
+    <div class="controls">
+      <button class="primary" data-act="step">Step</button>
+      <button data-act="play">Play</button>
+      <button data-act="finish">Finish chunk</button>
+      <button data-act="reset">Reset</button>
+      <label class="inline" for="seed2">Seed <input type="text" id="seed2" data-role="seed" value="ROMA-753" maxlength="24"></label>
+      <button data-act="random">New seed</button>
+      <label class="inline" for="speed2">Speed <input type="range" id="speed2" data-role="speed" min="1" max="30" value="8"></label>
+    </div>
+    <div class="sim-body">
+      <canvas class="board" data-role="board" aria-label="16 by 8 grid: a solved chunk on the left and a new chunk on the right"></canvas>
+      <div class="side">
+        <div class="card"><div class="stats">
+          <div class="stat"><b data-role="s-col">0/64</b><span>collapsed</span></div>
+          <div class="stat"><b data-role="s-h">0.00</b><span>mean H (bits)</span></div>
+          <div class="stat"><b data-role="s-prop">0</b><span>propagations</span></div>
+        </div></div>
+        <div class="card insp"><h4>Cell under pointer</h4><div data-role="insp">The left chunk was solved first and is fixed. Look at the new chunk's left column before you step: its candidates are already narrowed by the solved edge.</div></div>
+        <div class="card"><h4>Solver log</h4><div class="log" data-role="log"></div></div>
+      </div>
+    </div>
+    <div class="legend" data-role="legend"></div>
+  </div>
+
+  <section class="step">
+    <div class="numeral">VIII</div>
+    <div class="prose">
+      <span class="eyebrow">From solver to screen</span>
+      <h2>Solving off the main thread, revealing in collapse order</h2>
+      <p>The streamer keeps the chunks within three chunks of the runner solved, nearest first and biased toward the direction of travel. One chunk is solved at a time on a worker thread, so seam constraints are always taken from finished neighbours.</p>
+      <div class="pipeline">
+        <div class="pipe"><b>Snapshot</b>Read solved neighbours and avenue pins into starting masks.<small>main thread</small></div>
+        <div class="pipe"><b>Solve</b>Steps Iâ€“VI on 64 cells, about 6 ms.<small>WorkerThreadPool</small></div>
+        <div class="pipe"><b>Commit</b>Store the 64 variants in the endless cell dictionary.<small>main thread</small></div>
+        <div class="pipe"><b>Reveal</b>Tiles rise one by one, in the order the solver collapsed them.<small>0.028 s apart</small></div>
+        <div class="pipe"><b>Merge</b>One mesh per material per chunk. Collision only near the runner.<small>one draw call per material</small></div>
+      </div>
+      <p>The reveal is the part you see while running. Each chunk remembers the order the solver collapsed its cells in, and its tiles pop up in that order. The low-entropy, heavily constrained cells near the seams and avenues tend to appear first, and the city fills in behind them, just like the board above. Solved cells stay in memory after their meshes are unloaded, so the streets are unchanged if you run back.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>Source files: <code>scripts/wfc_data.gd</code> (catalogue, sockets, compatibility masks) Â· <code>scripts/infinite_wfc.gd</code> (chunk solver, seams, pins, relaxation) Â· <code>scripts/rng.gd</code> (FNV-1a + mulberry32) Â· <code>scripts/chunk_streamer.gd</code> (threaded solving, reveal, merge).</div>
+    <div>The boards on this page run a JavaScript port of the same rules, weights and random-number generator.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---------------------------------------------------------------- data
+  const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  const OPP = [2, 3, 0, 1];
+  const FAMS = ["roads", "aqueducts", "insulae", "domus", "forums", "gardens"];
+  const FAM_LABEL = { roads: "Via", aqueducts: "Aqua", insulae: "Insula", domus: "Domus", forums: "Forum", gardens: "Horti" };
+  const MODS = [
+    ["road_straight", "Via Romana (Straight)", "roads", "RURU", 14, [0, 1]],
+    ["road_corner", "Via Corner Bend", "roads", "RRUU", 9, [0, 1, 2, 3]],
+    ["road_t", "Via T-Junction", "roads", "RRUR", 7, [0, 1, 2, 3]],
+    ["road_cross", "Cardo-Decumanus Cross", "roads", "RRRR", 4, [0], true],
+    ["road_gate", "Triumphal Terminus Arch", "roads", "RUUU", 4, [0, 1, 2, 3]],
+    ["aqua_straight", "Aqueduct Arcade", "aqueducts", "AUAU", 8, [0, 1]],
+    ["aqua_overpass", "Aqueduct Road Overpass", "aqueducts", "ARAR", 7, [0, 1]],
+    ["aqua_corner", "Aqueduct Elbow Pier", "aqueducts", "AAUU", 3, [0, 1, 2, 3]],
+    ["aqua_castellum", "Castellum Aquae", "aqueducts", "AURU", 5, [0, 1, 2, 3]],
+    ["aqua_spring", "Aqueduct Spring Tower", "aqueducts", "AUUU", 3, [0, 1, 2, 3]],
+    ["insula_street", "Insula Tabernae", "insulae", "UURU", 14, [0, 1, 2, 3]],
+    ["insula_corner", "Corner Insula Block", "insulae", "URRU", 9, [0, 1, 2, 3]],
+    ["insula_horrea", "Horrea Granary Court", "insulae", "UUUU", 5, [0, 1]],
+    ["domus_atrium", "Atrium Domus", "domus", "UURU", 10, [0, 1, 2, 3]],
+    ["domus_peristyle", "Peristyle Villa Wing", "domus", "UUUU", 7, [0, 1]],
+    ["forum_plaza", "Forum Marble Plaza", "forums", "FFFF", 8, [0]],
+    ["forum_colonnade", "Forum Street Portico", "forums", "FFRF", 8, [0, 1, 2, 3]],
+    ["forum_edge", "Forum Colonnade Wall", "forums", "UFFF", 8, [0, 1, 2, 3]],
+    ["forum_corner", "Forum Corner Stoa", "forums", "UUFF", 7, [0, 1, 2, 3]],
+    ["forum_temple", "Capitoline Temple", "forums", "UUFU", 5, [0, 1, 2, 3], true],
+    ["forum_passage", "Forum Arch Arcade", "forums", "FUFU", 4, [0, 1]],
+    ["garden_cypress", "Cypress Grove", "gardens", "UUUU", 10, [0, 1]],
+    ["garden_nymphaeum", "Nymphaeum Park", "gardens", "UURU", 6, [0, 1, 2, 3]],
+    ["garden_pergola", "Orchard & Pergola", "gardens", "UUUU", 6, [0, 1]],
+  ];
+  const V = [];
+  for (const [id, name, fam, socks, w, rots, solitary] of MODS) {
+    const mult = fam === "roads" ? 1.35 : 1;
+    for (const rot of rots) {
+      const s = [0, 1, 2, 3].map((d) => socks[(4 + d - rot) % 4]);
+      const wt = (w * mult) / rots.length;
+      V.push({ i: V.length, id, name, fam, rot, s, w: wt, lw: wt * Math.log(wt), solitary: !!solitary });
+    }
+  }
+  const N = V.length;
+  const BIT = V.map((v) => 1n << BigInt(v.i));
+  const ALL = (1n << BigInt(N)) - 1n;
+  const COMPAT = V.map((v) => [0, 1, 2, 3].map((d) => {
+    let m = 0n;
+    for (const u of V) {
+      if (u.s[OPP[d]] !== v.s[d]) continue;
+      if (v.solitary && u.id === v.id) continue;
+      m |= BIT[u.i];
+    }
+    return m;
+  }));
+  const maskWhere = (pred) => V.reduce((m, v) => (pred(v) ? m | BIT[v.i] : m), 0n);
+  const PIN = [ALL, maskWhere((v) => v.s[0] === "R" && v.s[2] === "R"), maskWhere((v) => v.s[1] === "R" && v.s[3] === "R"), maskWhere((v) => v.s.every((x) => x === "R"))];
+  const has = (m, i) => (m & BIT[i]) !== 0n;
+  const unionCompat = (m, d) => { let u = 0n; for (let i = 0; i < N; i++) if (has(m, i)) u |= COMPAT[i][d]; return u; };
+  const PIN_UNION = PIN.map((m) => [0, 1, 2, 3].map((d) => unionCompat(m, d)));
+  const mod = (a, n) => ((a % n) + n) % n;
+  const pinKind = (x, z) => { const ns = mod(x, 16) === 0, ew = mod(z, 16) === 0; return ns && ew ? 3 : ns ? 1 : ew ? 2 : 0; };
+
+  function hashSeed(str) { let h = 2166136261 >>> 0; const s = String(str || "ROMA-753"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function prng(seed) { let a = (seed >>> 0) || 1; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  // ---------------------------------------------------------------- one chunk solver
+  class Chunk {
+    constructor(seed, cx, cz, world) { this.seed = seed; this.cx = cx; this.cz = cz; this.world = world; this.attempt = 0; this.totalProps = 0; this.log = []; this.relaxed = 0; this.buildInit(); this.restart(); }
+    wx(i) { return this.cx * 8 + (i & 7); }
+    wz(i) { return this.cz * 8 + (i >> 3); }
+    buildInit() {
+      this.init = [];
+      for (let i = 0; i < 64; i++) {
+        const lx = i & 7, lz = i >> 3, x = this.wx(i), z = this.wz(i);
+        let m = PIN[pinKind(x, z)];
+        const outside = [-1, -1, -1, -1];
+        for (let d = 0; d < 4; d++) {
+          const nlx = lx + DIRS[d][0], nlz = lz + DIRS[d][1];
+          if (nlx >= 0 && nlx < 8 && nlz >= 0 && nlz < 8) continue;
+          const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
+          const nv = this.world.get(`${nx},${nz}`);
+          if (nv !== undefined) { outside[d] = nv; m &= COMPAT[nv][OPP[d]]; }
+          else { const k = pinKind(nx, nz); if (k) m &= PIN_UNION[k][OPP[d]]; }
+        }
+        if (m === 0n) { // relax: least-mismatch variants
+          let best = 99, rm = 0n;
+          for (const v of V) {
+            let mm = 0; for (let d = 0; d < 4; d++) if (outside[d] >= 0 && v.s[d] !== V[outside[d]].s[OPP[d]]) mm++;
+            if (mm < best) { best = mm; rm = 0n; } if (mm === best) rm |= BIT[v.i];
+          }
+          const pm = rm & PIN[pinKind(x, z)]; m = pm || rm; this.relaxed += best;
+        }
+        this.init.push({ m, outside });
+      }
+    }
+    restart() {
+      this.rng = prng(hashSeed(`${this.seed}|${this.cx}|${this.cz}|${this.attempt}`));
+      this.mask = this.init.map((c) => c.m);
+      this.col = new Array(64).fill(-1);
+      this.count = new Array(64).fill(0); this.H = new Array(64).fill(0);
+      this.order = []; this.flash = new Array(64).fill(0); this.bad = -1; this.contra = false;
+      for (let i = 0; i < 64; i++) this.metrics(i);
+      this.initialCount = this.count.slice();
+      const ok = this.propagate([...Array(64).keys()], false);
+      this.flash.fill(0);
+      this.next = ok ? this.pick() : -2;
+      if (!ok || this.next === -2) this.markContradiction();
+    }
+    metrics(i) {
+      if (this.col[i] >= 0) { this.count[i] = 1; this.H[i] = 0; return; }
+      let sw = 0, swl = 0, c = 0; const m = this.mask[i];
+      for (let v = 0; v < N; v++) if (has(m, v)) { sw += V[v].w; swl += V[v].lw; c++; }
+      this.count[i] = c;
+      this.H[i] = c <= 1 || sw <= 0 ? 0 : Math.max(0.01, (Math.log(sw) - swl / sw) / Math.LN2);
+    }
+    pick() {
+      let best = -1, bs = Infinity;
+      for (let i = 0; i < 64; i++) {
+        if (this.col[i] >= 0) continue;
+        if (this.count[i] === 0) { this.bad = i; return -2; }
+        const s = (this.count[i] === 1 ? -10 : this.H[i]) + this.rng() * 0.0005;
+        if (s < bs) { bs = s; best = i; }
+      }
+      return best;
+    }
+    nb(i, d) {
+      const lx = (i & 7) + DIRS[d][0], lz = (i >> 3) + DIRS[d][1];
+      if (lx >= 0 && lx < 8 && lz >= 0 && lz < 8) return this.col[lz * 8 + lx];
+      return this.init[i].outside[d];
+    }
+    choose(i) {
+      const fc = {}; for (let d = 0; d < 4; d++) { const nv = this.nb(i, d); if (nv >= 0) fc[V[nv].fam] = (fc[V[nv].fam] || 0) + 1; }
+      const cand = []; let total = 0;
+      for (let v = 0; v < N; v++) {
+        if (!has(this.mask[i], v)) continue;
+        let w = V[v].w; const k = fc[V[v].fam] || 0, f = V[v].fam;
+        if (k) { if (f === "forums") w *= 1 + 0.9 * k; else if (f === "gardens" || f === "domus") w *= 1 + 0.55 * k; else if (f === "aqueducts") w *= 1 + 0.35 * k; }
+        cand.push([v, w]); total += w;
+      }
+      if (!cand.length) return -1;
+      let r = this.rng() * total;
+      for (const [v, w] of cand) { r -= w; if (r <= 0) return v; }
+      return cand[cand.length - 1][0];
+    }
+    propagate(start, mark = true) {
+      const q = start.slice(), inq = new Uint8Array(64); for (const s of start) inq[s] = 1;
+      let head = 0, changed = 0;
+      while (head < q.length) {
+        const ci = q[head++]; inq[ci] = 0; const m = this.mask[ci]; if (m === 0n) continue;
+        const allowed = [0, 1, 2, 3].map((d) => unionCompat(m, d));
+        for (let d = 0; d < 4; d++) {
+          const nx = (ci & 7) + DIRS[d][0], nz = (ci >> 3) + DIRS[d][1];
+          if (nx < 0 || nx > 7 || nz < 0 || nz > 7) continue;
+          const ni = nz * 8 + nx; if (this.col[ni] >= 0) continue;
+          const nm = this.mask[ni] & allowed[d];
+          if (nm !== this.mask[ni]) {
+            this.mask[ni] = nm; this.metrics(ni); this.totalProps++; changed++;
+            if (mark) this.flash[ni] = 1;
+            if (nm === 0n) { this.bad = ni; return false; }
+            if (!inq[ni]) { q.push(ni); inq[ni] = 1; }
+          }
+        }
+      }
+      this.lastChanged = changed;
+      return true;
+    }
+    markContradiction() { this.contra = true; this.say(`Contradiction at (${this.wx(this.bad)},${this.wz(this.bad)}): 0 candidates left`, true); }
+    done() { return this.next === -1; }
+    step() {
+      if (this.done()) return "done";
+      if (this.contra) { this.attempt++; this.say(`Restarting chunk, attempt ${this.attempt + 1} (salt â€¦|${this.attempt})`); this.restart(); return "retry"; }
+      const i = this.next, v = this.choose(i);
+      this.col[i] = v; this.mask[i] = BIT[v]; this.count[i] = 1; this.H[i] = 0; this.order.push(i); this.flash[i] = 1.4;
+      const ok = this.propagate([i]);
+      this.say(`#${this.order.length} (${this.wx(i)},${this.wz(i)}) â†’ ${V[v].name} ${V[v].rot * 90}Â° Â· narrowed ${ok ? this.lastChanged : "â€¦"}`);
+      if (!ok) { this.markContradiction(); return "contradiction"; }
+      this.next = this.pick();
+      if (this.next === -2) { this.markContradiction(); return "contradiction"; }
+      if (this.next === -1) this.say(`Chunk complete in ${this.attempt + 1} attempt${this.attempt ? "s" : ""}`);
+      return "stepped";
+    }
+    finish() { let guard = 2000; while (!this.done() && guard-- > 0) this.step(); }
+    say(msg, bad = false) { this.log.unshift({ msg, bad }); if (this.log.length > 40) this.log.length = 40; }
+  }
+
+  // ---------------------------------------------------------------- view
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const famColor = (f) => css(`--fam-${f}`);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function drawSockets(ctx, x, y, s, sockets) {
+    const c = s / 2;
+    for (let d = 0; d < 4; d++) {
+      const k = sockets[d]; if (k === "U") continue;
+      const wid = k === "R" ? s * 0.3 : k === "A" ? s * 0.12 : s * 0.5;
+      ctx.fillStyle = k === "R" ? css("--sock-r") : k === "A" ? css("--sock-a") : css("--sock-f");
+      if (k === "F") ctx.globalAlpha = 0.55;
+      if (d === 0) ctx.fillRect(x + c - wid / 2, y, wid, c + wid / 2);
+      if (d === 2) ctx.fillRect(x + c - wid / 2, y + c - wid / 2, wid, c + wid / 2);
+      if (d === 1) ctx.fillRect(x + c - wid / 2, y + c - wid / 2, c + wid / 2, wid);
+      if (d === 3) ctx.fillRect(x, y + c - wid / 2, c + wid / 2, wid);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  class Board {
+    constructor(root, opts) {
+      this.root = root; this.opts = opts;
+      this.q = (r) => root.querySelector(`[data-role="${r}"]`);
+      this.canvas = this.q("board"); this.ctx = this.canvas.getContext("2d");
+      this.cols = opts.cols; this.playing = false; this.acc = 0; this.hover = -1;
+      root.querySelectorAll("button[data-act]").forEach((b) => b.addEventListener("click", () => this.act(b.dataset.act)));
+      this.q("seed").addEventListener("change", () => this.reset());
+      this.canvas.addEventListener("pointermove", (e) => this.onHover(e));
+      this.canvas.addEventListener("pointerdown", (e) => this.onHover(e));
+      this.canvas.addEventListener("pointerleave", () => { this.hover = -1; this.renderInspector(); });
+      new ResizeObserver(() => this.resize()).observe(this.canvas);
+      this.q("legend").innerHTML = FAMS.map((f) => `<span><i class="sw" style="background:var(--fam-${f})"></i>${FAM_LABEL[f]}</span>`).join("")
+        + `<span><i class="sw" style="background:var(--cell-high)"></i>Undecided (number = candidates)</span><span><i class="sw" style="background:var(--danger)"></i>Contradiction</span>`;
+      this.reset();
+    }
+    reset() {
+      this.playing = false; this.setPlayLabel();
+      const seed = (this.q("seed").value || "ROMA-753").trim();
+      this.world = new Map(); this.fixed = [];
+      if (this.opts.leftSolved) {
+        const left = new Chunk(seed, 0, 0, this.world); left.finish();
+        left.col.forEach((v, i) => { this.world.set(`${i & 7},${i >> 3}`, v); });
+        this.fixed = left.col.slice();
+      }
+      this.chunk = new Chunk(seed, this.opts.cx, 0, this.world);
+      this.chunk.say(`Seed "${seed}": chunk (${this.opts.cx}, 0) in superposition, ${N} variants per cell`);
+      if (this.chunk.relaxed) this.chunk.say(`Relaxed ${this.chunk.relaxed} impossible seam edge(s)`);
+      this.renderAll();
+    }
+    act(a) {
+      if (a === "step") { this.playing = false; this.setPlayLabel(); this.chunk.step(); }
+      else if (a === "play") { if (this.chunk.done()) this.reset(); this.playing = !this.playing; this.setPlayLabel(); this.kick(); }
+      else if (a === "finish") { this.playing = false; this.setPlayLabel(); this.chunk.finish(); }
+      else if (a === "reset") this.reset();
+      else if (a === "random") {
+        const p = ["ROMA", "OSTIA", "POMPEII", "TIVOLI", "LUGDUNUM", "ARLES", "NARBO", "TARRACO"];
+        this.q("seed").value = `${p[Math.floor(Math.random() * p.length)]}-${100 + Math.floor(Math.random() * 900)}`;
+        this.reset(); return;
+      }
+      this.renderAll(); this.kick();
+    }
+    setPlayLabel() { const b = this.root.querySelector('[data-act="play"]'); b.textContent = this.playing ? "Pause" : "Play"; }
+    kick() { if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame((t) => this.loop(t)); } }
+    loop(t) {
+      this.raf = 0;
+      const dt = Math.min(0.1, (t - this.last) / 1000); this.last = t;
+      let active = false;
+      if (this.playing) {
+        active = true;
+        this.acc += dt * Number(this.q("speed").value);
+        while (this.acc >= 1) { this.acc -= 1; const r = this.chunk.step(); if (r === "done" || this.chunk.done()) { this.playing = false; this.setPlayLabel(); break; } }
+        this.renderStats();
+      }
+      const f = this.chunk.flash;
+      for (let i = 0; i < 64; i++) if (f[i] > 0) { f[i] = reduced ? 0 : Math.max(0, f[i] - dt * 1.6); active = true; }
+      this.draw();
+      if (active) this.kick();
+    }
+    resize() {
+      const w = this.canvas.clientWidth; if (!w) return;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      this.cell = w / this.cols;
+      this.canvas.style.height = `${this.cell * 8}px`;
+      this.canvas.width = Math.round(w * dpr); this.canvas.height = Math.round(this.cell * 8 * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.draw();
+    }
+    // map a board column to (source, index)
+    at(col, row) {
+      if (this.opts.leftSolved) { if (col < 8) return { fixed: true, i: row * 8 + col }; return { fixed: false, i: row * 8 + col - 8 }; }
+      return { fixed: false, i: row * 8 + col };
+    }
+    draw() {
+      const ctx = this.ctx, s = this.cell; if (!s) return;
+      ctx.clearRect(0, 0, this.cols * s, 8 * s);
+      const ch = this.chunk, maxH = 4.6;
+      for (let row = 0; row < 8; row++) for (let col = 0; col < this.cols; col++) {
+        const { fixed, i } = this.at(col, row), x = col * s, y = row * s, g = Math.max(1, s * 0.04);
+        const v = fixed ? this.fixed[i] : ch.col[i];
+        if (v >= 0) {
+          ctx.fillStyle = famColor(V[v].fam); ctx.fillRect(x + g, y + g, s - 2 * g, s - 2 * g);
+          ctx.save(); ctx.beginPath(); ctx.rect(x + g, y + g, s - 2 * g, s - 2 * g); ctx.clip();
+          drawSockets(ctx, x, y, s, V[v].s); ctx.restore();
+          if (fixed) { ctx.fillStyle = css("--bg"); ctx.globalAlpha = 0.38; ctx.fillRect(x, y, s, s); ctx.globalAlpha = 1; }
+        } else {
+          const cnt = ch.count[i];
+          const t = Math.min(1, ch.H[i] / maxH);
+          ctx.fillStyle = cnt === 0 ? css("--danger") : t > 0.5 ? css("--cell-high") : css("--cell-empty");
+          ctx.fillRect(x + g, y + g, s - 2 * g, s - 2 * g);
+          if (cnt > 0) { ctx.fillStyle = css("--cell-high"); ctx.globalAlpha = 0.25 + 0.75 * t; ctx.fillRect(x + g, y + g, s - 2 * g, s - 2 * g); ctx.globalAlpha = 1; }
+          ctx.fillStyle = cnt === 0 ? css("--surface") : css("--ink");
+          ctx.font = `600 ${Math.max(9, s * 0.3)}px ${css("--font-mono")}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(String(cnt), x + s / 2, y + s / 2 + 1);
+          if (pinKind(ch.wx(i), ch.wz(i))) { ctx.strokeStyle = css("--sock-r"); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeRect(x + g * 2.5, y + g * 2.5, s - 5 * g, s - 5 * g); ctx.setLineDash([]); }
+        }
+        if (!fixed && ch.flash[i] > 0) { ctx.fillStyle = css("--accent"); ctx.globalAlpha = Math.min(0.55, ch.flash[i] * 0.45); ctx.fillRect(x + g, y + g, s - 2 * g, s - 2 * g); ctx.globalAlpha = 1; }
+        if (!fixed && i === ch.next) { ctx.strokeStyle = css("--accent"); ctx.lineWidth = Math.max(2, s * 0.07); ctx.strokeRect(x + s * 0.08, y + s * 0.08, s * 0.84, s * 0.84); }
+        if (this.hoverCol === col && this.hoverRow === row) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.5; ctx.strokeRect(x + 1, y + 1, s - 2, s - 2); }
+      }
+      if (this.opts.leftSolved) { ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(8 * s, 0); ctx.lineTo(8 * s, 8 * s); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    onHover(e) {
+      const r = this.canvas.getBoundingClientRect();
+      const col = Math.floor((e.clientX - r.left) / this.cell), row = Math.floor((e.clientY - r.top) / this.cell);
+      if (col < 0 || row < 0 || col >= this.cols || row > 7) return;
+      this.hoverCol = col; this.hoverRow = row; this.renderInspector(); this.draw();
+    }
+    renderInspector() {
+      const el = this.q("insp");
+      if (this.hoverCol === undefined || this.hoverCol < 0) return;
+      const { fixed, i } = this.at(this.hoverCol, this.hoverRow), ch = this.chunk;
+      const wx = fixed ? i & 7 : ch.wx(i), wz = fixed ? i >> 3 : ch.wz(i);
+      const v = fixed ? this.fixed[i] : ch.col[i];
+      const pk = ["", " Â· avenue pin: cardo (Nâ€“S road)", " Â· avenue pin: decumanus (Eâ€“W road)", " Â· avenue pin: crossing"][pinKind(wx, wz)];
+      if (v >= 0) {
+        const vv = V[v];
+        el.innerHTML = `<div class="name">${vv.name}</div><div class="meta">cell (${wx}, ${wz}) Â· rot ${vv.rot * 90}Â° Â· sockets N${vv.s[0]} E${vv.s[1]} S${vv.s[2]} W${vv.s[3]}${pk}</div>
+          <div class="meta">${fixed ? "Solved earlier in chunk (0, 0)" : `Collapsed at step ${ch.order.indexOf(i) + 1}`}</div>`;
+        return;
+      }
+      const m = ch.mask[i], byFam = {};
+      for (let k = 0; k < N; k++) if (has(m, k)) byFam[V[k].fam] = (byFam[V[k].fam] || 0) + 1;
+      const max = Math.max(1, ...Object.values(byFam));
+      const startNote = ch.initialCount && ch.order.length === 0 && ch.count[i] < N ? ` Â· constrained before step 1` : "";
+      el.innerHTML = `<div class="name">${ch.count[i]} of ${N} variants left</div>
+        <div class="meta">cell (${wx}, ${wz}) Â· H = ${ch.H[i].toFixed(2)} bits${i === ch.next ? " Â· next to collapse" : ""}${pk}${startNote}</div>
+        <div class="bars">${FAMS.filter((f) => byFam[f]).map((f) => `<div class="bar"><span>${FAM_LABEL[f]}</span><i style="width:${(byFam[f] / max) * 100}%;background:var(--fam-${f})"></i><em>${byFam[f]}</em></div>`).join("")}</div>`;
+    }
+    renderStats() {
+      const ch = this.chunk; let col = 0, sh = 0, un = 0;
+      for (let i = 0; i < 64; i++) { if (ch.col[i] >= 0) col++; else { sh += ch.H[i]; un++; } }
+      this.q("s-col").textContent = `${col}/64`;
+      this.q("s-h").textContent = (un ? sh / un : 0).toFixed(2);
+      this.q("s-prop").textContent = String(ch.totalProps);
+      const dot = this.q("dot"), st = this.q("status");
+      if (ch.contra) { dot.className = "dot bad"; st.textContent = "Contradiction: next step restarts the chunk"; }
+      else if (ch.done()) { dot.className = "dot"; st.textContent = `Complete Â· attempt ${ch.attempt + 1}`; }
+      else { dot.className = "dot run"; st.textContent = this.playing ? `Collapsing Â· step ${ch.order.length}` : `Paused Â· step ${ch.order.length}`; }
+      this.q("log").innerHTML = ch.log.slice(0, 14).map((l) => `<div class="${l.bad ? "bad" : ""}">${l.msg}</div>`).join("");
+    }
+    renderAll() { this.renderStats(); this.renderInspector(); this.draw(); }
+  }
+
+  // socket legend tiles
+  const SOCK_INFO = [["R", "Via", "Paved road. Must continue into another road."], ["A", "Aqua", "Raised aqueduct channel."], ["F", "Forum", "Open marble plaza."], ["U", "Urban margin", "Building, wall or garden edge. Closed to traffic."]];
+  document.getElementById("socket-legend").innerHTML = SOCK_INFO.map(([k, n, d]) => `<div class="sock"><canvas data-sock="${k}" width="104" height="104"></canvas><div><b>${k}</b> Â· ${n}<span>${d}</span></div></div>`).join("");
+  function drawLegend() {
+    document.querySelectorAll("canvas[data-sock]").forEach((c) => {
+      const ctx = c.getContext("2d"), k = c.dataset.sock; ctx.setTransform(2, 0, 0, 2, 0, 0);
+      ctx.clearRect(0, 0, 52, 52); ctx.fillStyle = css("--cell-empty"); ctx.fillRect(0, 0, 52, 52);
+      ctx.fillStyle = k === "R" ? css("--fam-roads") : k === "A" ? css("--fam-aqueducts") : k === "F" ? css("--fam-forums") : css("--fam-insulae");
+      ctx.fillRect(10, 10, 32, 32);
+      drawSockets(ctx, 10, 10, 32, k === "U" ? ["U", "U", "U", "U"] : [k, k, k, k]);
+      ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2; ctx.setLineDash([3, 2]); ctx.strokeRect(10, 10, 32, 32); ctx.setLineDash([]);
+    });
+  }
+
+  const boards = [
+    new Board(document.getElementById("sim1"), { cols: 8, cx: 0 }),
+    new Board(document.getElementById("sim2"), { cols: 16, cx: 1, leftSolved: true }),
+  ];
+  drawLegend();
+  const redrawAll = () => { boards.forEach((b) => b.draw()); drawLegend(); };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+  new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  document.fonts && document.fonts.ready.then(redrawAll);
+})();
+</script>
+
+</body>
+</html>
